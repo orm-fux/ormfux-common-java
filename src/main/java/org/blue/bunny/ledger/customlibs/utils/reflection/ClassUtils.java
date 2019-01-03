@@ -1,6 +1,5 @@
 package org.blue.bunny.ledger.customlibs.utils.reflection;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -64,19 +63,6 @@ public final class ClassUtils {
      */
     public static Class<?> retrieveDataType(final Class<?> clazz, final int pos) {
         return (Class<?>) ((ParameterizedType) (clazz.getGenericSuperclass())).getActualTypeArguments()[pos];
-    }
-    
-    /**
-     * Checks whether a class has an annotation.
-     * 
-     * @param <T> an annotation type
-     * @param clazz class to check
-     * @param annotationClazz annotation class to check
-     * @return if a class has the annotation, false otherwise.
-     */
-    @Deprecated
-    public static <T extends Annotation> boolean hasAnnotation(Class<?> clazz, Class<T> annotationClazz) {
-        return clazz.getAnnotation(annotationClazz) != null;
     }
     
     /**

@@ -14,33 +14,33 @@ public final class TypeUtils {
     /**
      * Map of primitive types to their "object" types (e.g. int to Integer)
      */
-    protected static final Map<Class<?>, Class<?>> primitiveTypeToTypeMap = new HashMap<>();
+    protected static final Map<Class<?>, Class<?>> PRIMITIVE_TYPE_TO_TYPE_MAP = new HashMap<>();
     
     /**
      * Map of "object" types to their "primitive" types (e.g. Integer to int)
      */
-    protected static final Map<Class<?>, Class<?>> typeToPrimitiveTypeMap = new HashMap<>();
+    protected static final Map<Class<?>, Class<?>> TYPE_TO_PRIMITIVE_TYPE_MAP = new HashMap<>();
 
     static {
-        primitiveTypeToTypeMap.put(boolean.class, Boolean.class);
-        primitiveTypeToTypeMap.put(byte.class, Byte.class);
-        primitiveTypeToTypeMap.put(char.class, Character.class);
-        primitiveTypeToTypeMap.put(short.class, Short.class);
-        primitiveTypeToTypeMap.put(int.class, Integer.class);
-        primitiveTypeToTypeMap.put(long.class, Long.class);
-        primitiveTypeToTypeMap.put(float.class, Float.class);
-        primitiveTypeToTypeMap.put(double.class, Double.class);
-        primitiveTypeToTypeMap.put(void.class, Void.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(boolean.class, Boolean.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(byte.class, Byte.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(char.class, Character.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(short.class, Short.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(int.class, Integer.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(long.class, Long.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(float.class, Float.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(double.class, Double.class);
+        PRIMITIVE_TYPE_TO_TYPE_MAP.put(void.class, Void.class);
         
-        typeToPrimitiveTypeMap.put(Boolean.class, boolean.class);
-        typeToPrimitiveTypeMap.put(Byte.class, byte.class);
-        typeToPrimitiveTypeMap.put(Character.class, char.class);
-        typeToPrimitiveTypeMap.put(Short.class, short.class);
-        typeToPrimitiveTypeMap.put(Integer.class, int.class);
-        typeToPrimitiveTypeMap.put(Long.class, long.class);
-        typeToPrimitiveTypeMap.put(Float.class, float.class);
-        typeToPrimitiveTypeMap.put(Double.class, double.class);
-        typeToPrimitiveTypeMap.put(Void.class, void.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Boolean.class, boolean.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Byte.class, byte.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Character.class, char.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Short.class, short.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Integer.class, int.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Long.class, long.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Float.class, float.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Double.class, double.class);
+        TYPE_TO_PRIMITIVE_TYPE_MAP.put(Void.class, void.class);
 
     }
     
@@ -57,13 +57,15 @@ public final class TypeUtils {
         }
         
         if (target.isPrimitive() || assigned.isPrimitive()) {
-            if ((TypeUtils.primitiveTypeToTypeMap.get(target) != null && TypeUtils.primitiveTypeToTypeMap.get(target).isAssignableFrom(assigned))
-                    || (TypeUtils.typeToPrimitiveTypeMap.get(target) != null && TypeUtils.typeToPrimitiveTypeMap.get(target).isAssignableFrom(assigned))
-                    || (TypeUtils.primitiveTypeToTypeMap.get(assigned) != null && target.isAssignableFrom(TypeUtils.primitiveTypeToTypeMap.get(assigned)))
-                    || (TypeUtils.typeToPrimitiveTypeMap.get(assigned) != null && target.isAssignableFrom(TypeUtils.typeToPrimitiveTypeMap.get(assigned)))) {
+            if ((TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(target) != null && TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(target).isAssignableFrom(assigned))
+                    || (TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(target) != null && TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(target).isAssignableFrom(assigned))
+                    || (TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(assigned) != null && target.isAssignableFrom(TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(assigned)))
+                    || (TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(assigned) != null && target.isAssignableFrom(TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(assigned)))) {
                     return true;
             }
         }
         
         return false;
-    }}
+    }
+    
+}

@@ -50,13 +50,13 @@ public final class MethodUtils {
             if (setterMethod == null) {
                 if (propertyType.isPrimitive()) {
                     //use "object type" if method for primitive type is not found
-                    setterMethod = entityClass.getMethod(setterName, TypeUtils.primitiveTypeToTypeMap.get(propertyType));
-                } else if (TypeUtils.primitiveTypeToTypeMap.containsValue(propertyType)) {
+                    setterMethod = entityClass.getMethod(setterName, TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(propertyType));
+                } else if (TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.containsValue(propertyType)) {
                     //use primitive type if method for "object type" is not found
                     Class<?> primitiveType = null;
                     
-                    for (Class<?> type : TypeUtils.primitiveTypeToTypeMap.keySet()) {
-                        if (TypeUtils.primitiveTypeToTypeMap.get(type).equals(propertyType)) {
+                    for (Class<?> type : TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.keySet()) {
+                        if (TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(type).equals(propertyType)) {
                             primitiveType = type;
                             break;
                         }
@@ -133,10 +133,10 @@ public final class MethodUtils {
                 Class<?> requiredReturnType = propertyType;
                 
                 if (propertyType.isPrimitive()) {
-                    requiredReturnType = TypeUtils.primitiveTypeToTypeMap.get(propertyType);
+                    requiredReturnType = TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(propertyType);
                 } else {
-                    for (Class<?> type : TypeUtils.primitiveTypeToTypeMap.keySet()) {
-                        if (TypeUtils.primitiveTypeToTypeMap.get(type).equals(propertyType)) {
+                    for (Class<?> type : TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.keySet()) {
+                        if (TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(type).equals(propertyType)) {
                             requiredReturnType = type;
                             break;
                         }
@@ -290,7 +290,7 @@ public final class MethodUtils {
         final Method method = root.getMethod(methodName, parameterTypes);
         
         if (Modifier.isPublic(method.getModifiers()) ) {
-            if (returnType == null || checkTypeAssignability(returnType, method.getReturnType())) {
+            if (returnType == null || TypeUtils.isTypeAssignable(returnType, method.getReturnType())) {
                 return method;
             }
         }
@@ -331,7 +331,7 @@ public final class MethodUtils {
                 
                 for (int i = 0, parameterTypeIndex = 0; i < methodParameterTypes.length; i++) {
                     if (!nullArgIndexList.contains(i)) {
-                        if(parameterTypes != null && !checkTypeAssignability(methodParameterTypes[i], parameterTypes[parameterTypeIndex++])){
+                        if(parameterTypes != null && !TypeUtils.isTypeAssignable(methodParameterTypes[i], parameterTypes[parameterTypeIndex++])){
                             argumentsMatch = false;
                             break;
                         }
@@ -346,30 +346,11 @@ public final class MethodUtils {
             }
         }
         
-        if (result != null && (returnType == null || checkTypeAssignability(returnType, result.getReturnType()))) {
+        if (result != null && (returnType == null || TypeUtils.isTypeAssignable(returnType, result.getReturnType()))) {
             return result;
         }
         
         throw new NoSuchMethodException("No such method");
-    }
-    
-    //TODO Move to TypeUtils
-    @Deprecated
-    private static boolean checkTypeAssignability(final Class<?> target, final Class<?> assigned) {
-        if (target.isAssignableFrom(assigned)) {
-            return true;
-        }
-        
-        if (target.isPrimitive() || assigned.isPrimitive()) {
-            if ((TypeUtils.primitiveTypeToTypeMap.get(target) != null && TypeUtils.primitiveTypeToTypeMap.get(target).isAssignableFrom(assigned))
-                    || (TypeUtils.typeToPrimitiveTypeMap.get(target) != null && TypeUtils.typeToPrimitiveTypeMap.get(target).isAssignableFrom(assigned))
-                    || (TypeUtils.primitiveTypeToTypeMap.get(assigned) != null && target.isAssignableFrom(TypeUtils.primitiveTypeToTypeMap.get(assigned)))
-                    || (TypeUtils.typeToPrimitiveTypeMap.get(assigned) != null && target.isAssignableFrom(TypeUtils.typeToPrimitiveTypeMap.get(assigned)))) {
-                    return true;
-            }
-        }
-        
-        return false;
     }
     
     /**

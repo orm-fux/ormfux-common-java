@@ -130,33 +130,12 @@ public final class DateUtils {
     }
 
     /**
-     * Checks if two date objects are on the same day ignoring time. Null is allowed.
-     *
-     * @param oldDate the first date
-     * @param newDate the second date
-     * @return true if they represent the same day or both equal null
-     */
-    public static boolean isDayNotChanged(final Date oldDate, final Date newDate) {
-        if (oldDate == null && newDate == null) {
-            return true;
-        } else if (oldDate == null || newDate == null) {
-            return false;
-        } else {
-            //TODO remove apache commons usage
-            return org.apache.commons.lang3.time.DateUtils.isSameDay(oldDate, newDate);
-        }
-    }
-
-    /**
      * Checks if two date objects are on the same day ignoring time.
      *
      * @param date1 the first date, not altered, not null
      * @param date2 the second date, not altered, not null
      * @return true if they represent the same day
-     *
-     * @deprecated Use #isDayNotChanged instead.
      */
-    @Deprecated
     public static boolean isSameDay(final Date date1, final Date date2) {
             //TODO remove apache commons usage
         return org.apache.commons.lang3.time.DateUtils.isSameDay(date1, date2);
@@ -200,58 +179,6 @@ public final class DateUtils {
     public static Date now() {
         return Calendar.getInstance().getTime();
     }
-
-    /**
-     * six months in past.
-     *
-     * @return six months in past.
-     */
-    @Deprecated
-    public static Date sixMonthsInPast() {
-        final Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        calendar.add(Calendar.MONTH, -6);
-        
-        return calendar.getTime();
-    }
-
-    /**
-     * Shifts date to the future or past according to "months" parameter.
-     *
-     * @param months -
-     * @return date shifted to the future or past.
-     */
-    @Deprecated
-    public static Date shiftMonths(final int months) {
-        return shift(months, Calendar.MONTH);
-    }
-
-    /**
-     * Shifts date to the future or past according to "days" parameter.
-     *
-     * @param days -
-     * @return date shifted to the future or past.
-     */
-    @Deprecated
-    public static Date shiftDays(final int days) {
-        return shift(days, Calendar.DAY_OF_YEAR);
-    }
-
-    /**
-     * Shifts given date to the future or past according to "quantity" and "calendarCode" parameter.
-     *
-     * @param quantity     the quantity
-     * @param calendarCode the calendar code
-     * @return date shifted to the future or past.
-     */
-    @Deprecated
-    public static Date shift(final Date date, final int quantity, final int calendarCode) {
-        final Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(calendarCode, quantity);
-        
-        return calendar.getTime();
-    }
     
     /**
      * Shifts the "now" date by the provided values.
@@ -287,49 +214,11 @@ public final class DateUtils {
                 throw new IllegalArgumentException("Unsupported time unit: " + unit);
         }
         
-        return shift(date, quantity, calendarCode);
+        final Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(calendarCode, quantity);
+        
+        return calendar.getTime();
     }
     
-    /**
-     * Shifts current date to the future or past according to "quantity" and "calendarCode" parameter.
-     *
-     * @param quantity     the quantity
-     * @param calendarCode the calendar code
-     * @return - date shifted to the future or past.
-     */
-    @Deprecated
-    public static Date shift(final int quantity, final int calendarCode) {
-        return shift(now(), quantity, calendarCode);
-    }
-
-    /**
-     * Calculates a number of time units specified by "calendarField" between two dates.
-     *
-     * @param startDate     the start date
-     * @param endDate       the end date
-     * @param calendarField the time unit specified by Calendar for example "Calendar.DAY_OF_MONTH"
-     * @return the number of time units between two dates.
-     */
-    @Deprecated
-    public static int timeUnitsBetween(final Date startDate, final Date endDate, final int calendarField) {
-        final Calendar start = Calendar.getInstance();
-        start.setTime(startDate);
-        
-        final Calendar end = Calendar.getInstance();
-        end.setTime(endDate);
-        
-        final Calendar date = (Calendar) start.clone();
-        int timeUnitsBetween = 0;
-        
-        while (date.before(end)) {
-            date.add(calendarField, 1);
-            
-            if (date.before(end)) {
-                timeUnitsBetween++;
-            }
-        }
-        
-        return timeUnitsBetween;
-    }
-
 }
