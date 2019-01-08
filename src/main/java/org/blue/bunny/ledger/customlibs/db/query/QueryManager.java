@@ -1,5 +1,9 @@
 package org.blue.bunny.ledger.customlibs.db.query;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+
 import org.blue.bunny.ledger.customlibs.db.exception.SQLException;
 import org.blue.bunny.ledger.customlibs.ioc.annotations.Bean;
 import org.h2.Driver;
@@ -72,6 +76,21 @@ public class QueryManager {
      */
     public void setDatabaseUrl(final String databaseUrl) {
         this.databaseUrl = databaseUrl;
+    }
+    
+    /**
+     * Closes all connections to the database and releases the lock on the database file. 
+     */
+    public void closeAllDbConnections() {
+        try {
+            final Connection closeConnection = DriverManager.getConnection(databaseUrl);
+            final Statement closeStatement = closeConnection.createStatement();
+            closeStatement.execute("SHUTDOWN");
+            closeStatement.close();
+            closeConnection.close();
+        } catch (java.sql.SQLException e) {
+            throw new SQLException("Cannot connect to database.", e);
+        }
     }
     
 }
