@@ -1,0 +1,5 @@
+dependencies {
+	//remember scopes: api, implementation, testImplementation
+	api 'org.apache.commons:commons-lang3:3.7'
+	api 'com.h2database:h2:1.4.196'
+}
