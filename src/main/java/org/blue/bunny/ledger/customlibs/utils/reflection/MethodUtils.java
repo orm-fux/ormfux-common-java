@@ -594,7 +594,7 @@ public final class MethodUtils {
             
             final Class<?> propertyType = getterMethod.getReturnType();
             final Method propertySetter = findPropertySetter(currentObject.getClass(), propertyName, propertyType);
-            final Object newInstance = propertyType.newInstance();
+            final Object newInstance = ClassUtils.createObject(propertyType);
             propertySetter.invoke(currentObject, newInstance);
             currentObject = newInstance;
         }

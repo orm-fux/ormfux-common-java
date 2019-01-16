@@ -1,6 +1,7 @@
 package org.blue.bunny.ledger.customlibs.utils.reflection;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -15,6 +16,22 @@ import java.util.List;
 public final class ClassUtils {
     
     private ClassUtils() {
+    }
+    
+    /**
+     * Creates a new Object from the given Class. Uses the public, no-argument constructor.
+     * 
+     * @param objectType The class.
+     * @return The instance.
+     */
+    public static <T> T createObject(final Class<T> objectType) {
+        try {
+            return objectType.getDeclaredConstructor().newInstance();
+        } catch (final InstantiationException | IllegalAccessException 
+                        | IllegalArgumentException | InvocationTargetException
+                        | NoSuchMethodException | SecurityException e) {
+            throw new RuntimeException("Error creating new instance of class " + objectType, e);
+        }
     }
     
     /**

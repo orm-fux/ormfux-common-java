@@ -99,97 +99,92 @@ public class TypedQuery<T> extends AbstractQuery {
      * @throws SQLException
      */
     private void doUpdate(final T entity) throws SQLException {
-        try {
-            final List<Field> simpleFields = getMappedSimpleFields();
+        final List<Field> simpleFields = getMappedSimpleFields();
+        
+        //increment version
+        final Field versionField = getVersionField();
+        Object entityVersion = PropertyUtils.read(entity, versionField.getName());
+        
+        entityVersion = new LongIncrementGenerator().generate(entityVersion);
+        PropertyUtils.write(entity, versionField.getName(), entityVersion);
+        
+        //set automatic valued fields
+        for (final Field simpleField : simpleFields) {
+            final Column colDef = simpleField.getAnnotation(Column.class);
             
-            //increment version
-            final Field versionField = getVersionField();
-            Object entityVersion = PropertyUtils.read(entity, versionField.getName());
+            if (!colDef.generator().isAssignableFrom(NoValueGenerator.class)) {
+                final ValueGenerator<?> valueGenerator = ClassUtils.createObject(colDef.generator());
+                final Object previousValue = PropertyUtils.read(entity, simpleField.getName());
+                PropertyUtils.write(entity, simpleField.getName(), valueGenerator.generate(previousValue));
+            }
             
-            entityVersion = new LongIncrementGenerator().generate(entityVersion);
-            PropertyUtils.write(entity, versionField.getName(), entityVersion);
-            
-            //set automatic valued fields
-            for (final Field simpleField : simpleFields) {
+        }
+        
+        //build update query. first main entity then collections
+        final String tableName = getTableName();
+        final Field idField = getIdField();
+        final Column idColumn = idField.getAnnotation(Column.class);
+        
+        final StringBuilder queryString = new StringBuilder();
+        
+        //main update query
+        final StringJoiner updateQuery = new StringJoiner(", ", 
+                                                          " update " + tableName + " set ", 
+                                                          " where " + tableName + '.' + idColumn.columnName() + " = :id; ");
+        final Map<String, Object> queryParams = new HashMap<>();
+        
+        for (final Field simpleField : simpleFields) {
+            if (!simpleField.isAnnotationPresent(Id.class)) {
+                final Class<?> fieldType = simpleField.getType();
+                final String fieldName = simpleField.getName();
+                
+                Object updateValue = PropertyUtils.read(entity, fieldName);
+                
+                if (updateValue == null) {
+                    //no action necessary
+                    
+                } else if (fieldType.isEnum()) {
+                    //enum fields
+                    updateValue = ((Enum<?>) updateValue).name();
+                    
+                } else if (fieldType.isAnnotationPresent(Entity.class)) {
+                    //field is another entity. load it
+                    final Field nestedEntityIdField = getIdField(fieldType);
+                    updateValue = PropertyUtils.read(updateValue, nestedEntityIdField.getName());
+                    
+                } else {
+                    //field is a "simple type". no action necessary.
+                }
+                
                 final Column colDef = simpleField.getAnnotation(Column.class);
+                final String columnName = colDef.columnName();
                 
-                if (!colDef.generator().isAssignableFrom(NoValueGenerator.class)) {
-                    final ValueGenerator<?> valueGenerator = colDef.generator().newInstance();
-                    final Object previousValue = PropertyUtils.read(entity, simpleField.getName());
-                    PropertyUtils.write(entity, simpleField.getName(), valueGenerator.generate(previousValue));
-                }
+                updateQuery.add(tableName + '.' + columnName + " = :" + columnName);
+                queryParams.put(columnName, updateValue);
                 
             }
             
-            //build update query. first main entity then collections
-            final String tableName = getTableName();
-            final Field idField = getIdField();
-            final Column idColumn = idField.getAnnotation(Column.class);
-            
-            final StringBuilder queryString = new StringBuilder();
-            
-            //main update query
-            final StringJoiner updateQuery = new StringJoiner(", ", 
-                                                              " update " + tableName + " set ", 
-                                                              " where " + tableName + '.' + idColumn.columnName() + " = :id; ");
-            final Map<String, Object> queryParams = new HashMap<>();
-            
-            for (final Field simpleField : simpleFields) {
-                if (!simpleField.isAnnotationPresent(Id.class)) {
-                    final Class<?> fieldType = simpleField.getType();
-                    final String fieldName = simpleField.getName();
-                    
-                    Object updateValue = PropertyUtils.read(entity, fieldName);
-                    
-                    if (updateValue == null) {
-                        //no action necessary
-                        
-                    } else if (fieldType.isEnum()) {
-                        //enum fields
-                        updateValue = ((Enum<?>) updateValue).name();
-                        
-                    } else if (fieldType.isAnnotationPresent(Entity.class)) {
-                        //field is another entity. load it
-                        final Field nestedEntityIdField = getIdField(fieldType);
-                        updateValue = PropertyUtils.read(updateValue, nestedEntityIdField.getName());
-                        
-                    } else {
-                        //field is a "simple type". no action necessary.
-                    }
-                    
-                    final Column colDef = simpleField.getAnnotation(Column.class);
-                    final String columnName = colDef.columnName();
-                    
-                    updateQuery.add(tableName + '.' + columnName + " = :" + columnName);
-                    queryParams.put(columnName, updateValue);
-                    
-                }
-                
-            }
-            
-            queryString.append(updateQuery);
-            
-            //collections
-            queryString.append(createClearCollectionsQuery());
-            
-            final Query updateCollectionsVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
-            queryString.append(updateCollectionsVersionQuery.getQueryString());
-            queryParams.putAll(updateCollectionsVersionQuery.getQueryParams());
-            
-            final Query insertCollectionsQuery = createInsertCollectionsQuery(entity);
-            queryString.append(insertCollectionsQuery.getQueryString());
-            queryParams.putAll(insertCollectionsQuery.getQueryParams());
-            
-            final Query query = new Query(getDbConnection(), queryString.toString());
-            query.addParameter("id", PropertyUtils.read(entity, idField.getName()));
-            query.addParameters(queryParams);
-            
-            if (query.executeUpdate() < 1) {
-                throw new SQLException("Nothing was updated.");
-            }
-            
-        } catch (final InstantiationException | IllegalAccessException e) {
-            throw new SQLException("Error generating entity id.", e);
+        }
+        
+        queryString.append(updateQuery);
+        
+        //collections
+        queryString.append(createClearCollectionsQuery());
+        
+        final Query updateCollectionsVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
+        queryString.append(updateCollectionsVersionQuery.getQueryString());
+        queryParams.putAll(updateCollectionsVersionQuery.getQueryParams());
+        
+        final Query insertCollectionsQuery = createInsertCollectionsQuery(entity);
+        queryString.append(insertCollectionsQuery.getQueryString());
+        queryParams.putAll(insertCollectionsQuery.getQueryParams());
+        
+        final Query query = new Query(getDbConnection(), queryString.toString());
+        query.addParameter("id", PropertyUtils.read(entity, idField.getName()));
+        query.addParameters(queryParams);
+        
+        if (query.executeUpdate() < 1) {
+            throw new SQLException("Nothing was updated.");
         }
         
     }
@@ -205,86 +200,81 @@ public class TypedQuery<T> extends AbstractQuery {
     private Object doCreate(final T entity) throws SQLException {
         final List<Field> simpleFields = getMappedSimpleFields();
         
-        try {
-            //create new entity id
-            final Field idField = getIdField();
-            final Object entityId =  idField.getAnnotation(Id.class).value().newInstance().generateId();
-            PropertyUtils.write(entity, idField.getName(), entityId);
+        //create new entity id
+        final Field idField = getIdField();
+        final Object entityId =  ClassUtils.createObject(idField.getAnnotation(Id.class).value()).generateId();
+        PropertyUtils.write(entity, idField.getName(), entityId);
+        
+        //set automatic valued fields
+        for (final Field simpleField : simpleFields) {
+            final Column colDef = simpleField.getAnnotation(Column.class);
             
-            //set automatic valued fields
-            for (final Field simpleField : simpleFields) {
-                final Column colDef = simpleField.getAnnotation(Column.class);
-                
-                if (!colDef.generator().isAssignableFrom(NoValueGenerator.class)) {
-                    final ValueGenerator<?> valueGenerator = colDef.generator().newInstance();
-                    final Object previousValue = PropertyUtils.read(entity, simpleField.getName());
-                    PropertyUtils.write(entity, simpleField.getName(), valueGenerator.generate(previousValue));
-                }
-                
+            if (!colDef.generator().isAssignableFrom(NoValueGenerator.class)) {
+                final ValueGenerator<?> valueGenerator = ClassUtils.createObject(colDef.generator());
+                final Object previousValue = PropertyUtils.read(entity, simpleField.getName());
+                PropertyUtils.write(entity, simpleField.getName(), valueGenerator.generate(previousValue));
             }
             
-            final Map<String, Object> queryParams = new HashMap<>();
-            final StringBuilder queryString = new StringBuilder(); 
-            final String tableName = getTableName();
-            
-            final StringJoiner insertColumns = new StringJoiner(", ", "(", ")");
-            final StringJoiner valuesDef = new StringJoiner(", ", "(", ")");
-            
-            for (final Field simpleField : simpleFields) {
-                final Class<?> fieldType = simpleField.getType();
-                final String fieldName = simpleField.getName();
-                
-                Object updateValue = PropertyUtils.read(entity, fieldName);
-                
-                if (updateValue != null) {
-                    if (fieldType.isEnum()) {
-                        //enum fields
-                        updateValue = ((Enum<?>) updateValue).name();
-                        
-                    } else if (fieldType.isAnnotationPresent(Entity.class)) {
-                        //field is another entity. load it
-                        final Field nestedEntityIdField = getIdField(fieldType);
-                        updateValue = PropertyUtils.read(updateValue, nestedEntityIdField.getName());
-                        
-                    } else {
-                        //field is a "simple type". no action necessary.
-                    }
-                    
-                    final Column colDef = simpleField.getAnnotation(Column.class);
-                    final String columnName = colDef.columnName();
-                    
-                    insertColumns.add(columnName);
-                    valuesDef.add(":" + columnName);
-                    queryParams.put(columnName, updateValue);
-                }
-                
-            }
-            
-            queryString.append("insert into ").append(tableName)
-                       .append(insertColumns)
-                       .append(" values ").append(valuesDef)
-                       .append("; ");
-            
-            final Query updateCollectionsVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
-            queryString.append(updateCollectionsVersionQuery.getQueryString());
-            queryParams.putAll(updateCollectionsVersionQuery.getQueryParams());
-            
-            final Query insertCollectionsQuery = createInsertCollectionsQuery(entity);
-            queryString.append(insertCollectionsQuery.getQueryString());
-            queryParams.putAll(insertCollectionsQuery.getQueryParams());
-            
-            final Query query = new Query(getDbConnection(), queryString.toString());
-            query.addParameters(queryParams);
-            
-            if (query.executeUpdate() < 1) {
-                throw new SQLException("Nothing was inserted.");
-            }
-            
-            return entityId;
-            
-        } catch (final InstantiationException | IllegalAccessException e) {
-            throw new SQLException("Error generating entity id.", e);
         }
+        
+        final Map<String, Object> queryParams = new HashMap<>();
+        final StringBuilder queryString = new StringBuilder(); 
+        final String tableName = getTableName();
+        
+        final StringJoiner insertColumns = new StringJoiner(", ", "(", ")");
+        final StringJoiner valuesDef = new StringJoiner(", ", "(", ")");
+        
+        for (final Field simpleField : simpleFields) {
+            final Class<?> fieldType = simpleField.getType();
+            final String fieldName = simpleField.getName();
+            
+            Object updateValue = PropertyUtils.read(entity, fieldName);
+            
+            if (updateValue != null) {
+                if (fieldType.isEnum()) {
+                    //enum fields
+                    updateValue = ((Enum<?>) updateValue).name();
+                    
+                } else if (fieldType.isAnnotationPresent(Entity.class)) {
+                    //field is another entity. load it
+                    final Field nestedEntityIdField = getIdField(fieldType);
+                    updateValue = PropertyUtils.read(updateValue, nestedEntityIdField.getName());
+                    
+                } else {
+                    //field is a "simple type". no action necessary.
+                }
+                
+                final Column colDef = simpleField.getAnnotation(Column.class);
+                final String columnName = colDef.columnName();
+                
+                insertColumns.add(columnName);
+                valuesDef.add(":" + columnName);
+                queryParams.put(columnName, updateValue);
+            }
+            
+        }
+        
+        queryString.append("insert into ").append(tableName)
+                   .append(insertColumns)
+                   .append(" values ").append(valuesDef)
+                   .append("; ");
+        
+        final Query updateCollectionsVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
+        queryString.append(updateCollectionsVersionQuery.getQueryString());
+        queryParams.putAll(updateCollectionsVersionQuery.getQueryParams());
+        
+        final Query insertCollectionsQuery = createInsertCollectionsQuery(entity);
+        queryString.append(insertCollectionsQuery.getQueryString());
+        queryParams.putAll(insertCollectionsQuery.getQueryParams());
+        
+        final Query query = new Query(getDbConnection(), queryString.toString());
+        query.addParameters(queryParams);
+        
+        if (query.executeUpdate() < 1) {
+            throw new SQLException("Nothing was inserted.");
+        }
+        
+        return entityId;
         
     }
     
@@ -568,7 +558,7 @@ public class TypedQuery<T> extends AbstractQuery {
             final List<Field> collectionFields = getMappedCollectionFields();
             
             //put in loaded entities before doing anything else to handle circular references
-            final T entity = entityType.newInstance();
+            final T entity = ClassUtils.createObject(entityType);
             idField.set(entity, entityId);
             loadedEntities.put(entityType.getName() + ':' + entityId, entity);  
             
@@ -632,7 +622,7 @@ public class TypedQuery<T> extends AbstractQuery {
             
             return entity;
             
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             throw new SQLException("Cannot create new entity instance.", e);
         }
     }

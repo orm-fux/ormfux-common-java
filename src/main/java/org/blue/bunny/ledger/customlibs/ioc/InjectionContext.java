@@ -82,7 +82,7 @@ public final class InjectionContext {
      */
     private static <T> T addBean(final Class<T> beanType) {
         try {
-            final T bean = beanType.newInstance();
+            final T bean = ClassUtils.createObject(beanType);
             //For circular references put this in the content immediately.
             if (beanType.getAnnotation(Bean.class).singleton()) {
                 beans.put(beanType, bean);
@@ -132,7 +132,7 @@ public final class InjectionContext {
                          final Object fieldValue = getBean(fieldType);
                          
                          if (fieldValue != null) {
-                             if (!beanField.isAccessible()) {
+                             if (!beanField.canAccess(bean)) {
                                  beanField.setAccessible(true);
                              }
                              
@@ -152,7 +152,7 @@ public final class InjectionContext {
             
             return bean;
             
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (IllegalAccessException e) {
             throw new RuntimeException("Cannot create new bean of type " + beanType, e);
         }
     }
