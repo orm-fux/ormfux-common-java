@@ -121,7 +121,7 @@ public class Query extends AbstractQuery {
     /**
      * Executes an the query as a select query.
      * 
-     * @param The query result as iterable object.
+     * @return The query result as iterable object.
      * 
      * @throws SQLException
      */

@@ -10,12 +10,17 @@ public class NonMatchedParamException extends SQLException {
      */
     private static final long serialVersionUID = 1L;
     
-    /** {@inheritDoc} */
+    /**
+     * @param message Exception message. 
+     */
     public NonMatchedParamException(final String message) {
         super(message);
     }
     
-    /** {@inheritDoc} */
+    /**
+     * @param message Exception message.
+     * @param cause nested Exception. 
+     */
     public NonMatchedParamException(final String message, final Throwable cause) {
         super(message, cause);
     }

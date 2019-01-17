@@ -11,12 +11,17 @@ public class DuplicateParamException extends SQLException {
      */
     private static final long serialVersionUID = 1L;
     
-    /** {@inheritDoc} */
+    /**
+     * @param message Exception message. 
+     */
     public DuplicateParamException(final String message) {
         super(message);
     }
     
-    /** {@inheritDoc} */
+    /**
+     * @param message Exception message.
+     * @param cause nested Exception. 
+     */
     public DuplicateParamException(final String message, final Throwable cause) {
         super(message, cause);
     }

@@ -50,12 +50,13 @@ public final class CollectionUtils {
     /**
      * Maps from source collection to a target array.
      * 
-     * @param <S> source type
-     * @param <T> target type
      * @param source source collection
-     * @param result result array
      * @param functor mapping functor
      * @return target array
+     * 
+     * @param <S> source type
+     * @param <T> target type
+     * 
      */
     @SuppressWarnings("unchecked")
     public static <S, T> T[] mapToArray(final Collection<S> source, final Function<S, T> functor) {

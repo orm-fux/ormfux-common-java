@@ -20,10 +20,11 @@ public final class ListUtils {
     /**
      * Sorts the given list with the specified sort algorithm.
      * 
-     * @param <T> the list-entries datatype
      * @param toSort the list
-     * @param predicate2 the sort algorithm
+     * @param sortFunction the sort algorithm
      * @return the sorted list
+     * 
+     * @param <T> the list-entries datatype
      */
     public static <T> List<T> sort(List<T> toSort, final BiFunction<T, T, Integer> sortFunction) {
         Collections.sort(toSort, new Comparator<T>() {

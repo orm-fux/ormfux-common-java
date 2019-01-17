@@ -519,7 +519,6 @@ public final class MethodUtils {
      * Writes the value to a nested property of an Object.
      *
      * @param root The Object acting as root of the property path.
-     * @param propertyPath The path to the nested property. Property names are colon-separated.
      * @param propertySetterPath The methods to invoke (each on the result of the previous). The last one is the setter.
      * @param valueToSet The value to write to the property.
      * @param createIntermediate If the intermediate objects on the property path should be automatically created

@@ -83,7 +83,7 @@ public class QueryResult implements Iterable<QueryResult.QueryResultRow> {
         /**
          * Gets the value of a column from the row.
          * 
-         * @param columnIdx The column's name.
+         * @param columnName The column's name.
          * @return The value.
          */
         public Object getValue(final String columnName) {

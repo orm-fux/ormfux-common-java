@@ -10,12 +10,17 @@ public class SQLException extends RuntimeException {
      */
     private static final long serialVersionUID = 1L;
     
-    /** {@inheritDoc} */
+    /**
+     * @param message Exception message.
+     */
     public SQLException(final String message) {
         super(message);
     }
     
-    /** {@inheritDoc} */
+    /**
+     * @param message Exception message.
+     * @param cause nested Exception. 
+     */
     public SQLException(final String message, final Throwable cause) {
         super(message, cause);
     }
