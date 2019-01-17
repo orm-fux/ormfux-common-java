@@ -1,1 +1,3 @@
 rootProject.name = 'bb-common'
+
+include 'bb-common-utils', 'bb-common-ioc', 'bb-common-db'

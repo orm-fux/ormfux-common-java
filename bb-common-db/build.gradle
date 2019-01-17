@@ -1,0 +1,5 @@
+dependencies {
+	implementation project(':bb-common-utils')
+	implementation 'com.h2database:h2:1.4.196'
+	api project(':bb-common-ioc')
+}

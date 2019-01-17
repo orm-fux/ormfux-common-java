@@ -1,0 +1,11 @@
+
+/*/src/gen/
+
+/*/target/
+
+/*/bin/
+/bin/
+
+/*/build/
+/*/.gradle/
+.gradle/
