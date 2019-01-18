@@ -11,14 +11,6 @@ import org.blue.bunny.common.utils.reflection.ClassUtils;
  */
 public class QueryManager {
     
-    static {
-        //Make this manager available as an injectable "service", but only when the injection
-        //framework is available.
-        if (BeanRegistrator.isInjectionFrameworkAvailable()) {
-            BeanRegistrator.registerAsBean(QueryManager.class, true);
-        }
-    }
-    
     /**
      * The provider for the database connections.
      */
@@ -100,4 +92,12 @@ public class QueryManager {
         connectionProvider.backupDatabase(databaseVersion);
     }
     
+    /**
+     * Checks, if the database is reachable.
+     * 
+     * @return {@code true} when reachable.
+     */
+    public boolean pingDatabase() {
+        return connectionProvider.ping();
+    }
 }

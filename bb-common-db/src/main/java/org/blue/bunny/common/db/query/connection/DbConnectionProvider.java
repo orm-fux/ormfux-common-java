@@ -28,4 +28,11 @@ public interface DbConnectionProvider {
      * @param databaseVersion A version indicator for the backed up database.
      */
     public void backupDatabase(final CharSequence databaseVersion);
+    
+    /**
+     * Checks, if the database is reachable.
+     * 
+     * @return {@code true} when reachable.
+     */
+    public boolean ping();
 }

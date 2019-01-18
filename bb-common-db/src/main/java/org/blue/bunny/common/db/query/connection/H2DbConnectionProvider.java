@@ -98,7 +98,7 @@ public class H2DbConnectionProvider extends AbstractDbConnectionProvider {
     protected void doBackupDatabase(final CharSequence databaseVersion) {
         closeAllConnections();
         
-        final String dbFile = getDatabaseUrl().substring(FILE_DB_INDICATOR.length());
+        final String dbFile = getDbFile();
         final String backupTimestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(DateUtils.now());
         
         try {
@@ -118,5 +118,23 @@ public class H2DbConnectionProvider extends AbstractDbConnectionProvider {
         } catch (final IOException e) {
             throw new SQLException("Error creating backup of database.", e);
         }
+    }
+    
+    /**
+     * Checks, if the database file exists.
+     */
+    @Override
+    public boolean ping() {
+        final String dbFile = getDbFile();
+        
+        return FileUtils.exists(dbFile + Constants.SUFFIX_PAGE_FILE) 
+                || FileUtils.exists(dbFile + Constants.SUFFIX_MV_FILE);
+    }
+    
+    /**
+     * The file representing the database.
+     */
+    private String getDbFile() {
+        return getDatabaseUrl().substring(FILE_DB_INDICATOR.length());
     }
 }
