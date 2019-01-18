@@ -116,16 +116,11 @@ public final class DateUtils {
      * @return date
      */
     public static Date getDate(final int year, final int month, final int date) {
-        final Calendar calendar = Calendar.getInstance();
-
+        final Calendar calendar = getCalendar(null, null);
         calendar.set(Calendar.YEAR, year);
         calendar.set(Calendar.MONTH, month - 1);
         calendar.set(Calendar.DATE, date);
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-
+        
         return calendar.getTime();
     }
 
@@ -137,10 +132,25 @@ public final class DateUtils {
      * @return true if they represent the same day
      */
     public static boolean isSameDay(final Date date1, final Date date2) {
-            //TODO remove apache commons usage
-        return org.apache.commons.lang3.time.DateUtils.isSameDay(date1, date2);
+        final Calendar calendar1 = getCalendar(date1, null);
+        final Calendar calendar2 = getCalendar(date2, null);
+        
+        return calendar1.get(Calendar.ERA) == calendar2.get(Calendar.ERA)
+                && calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR)
+                && calendar1.get(Calendar.DAY_OF_YEAR) == calendar2.get(Calendar.DAY_OF_YEAR);
     }
-
+    
+    /**
+     * Checks if a date is before the other date ignoring the time.
+     *
+     * @param date1 the first date, not altered, not null
+     * @param date2 the second date, not altered, not null
+     * @return true if date1 is before or at the same date as date2.
+     */
+    public static boolean isBeforeDay(final Date date1, final Date date2) {
+        return !isSameOrAfterDay(date1, date2);
+    }
+    
     /**
      * Checks if a date is before or at the same date ignoring the time.
      *
@@ -149,13 +159,20 @@ public final class DateUtils {
      * @return true if date1 is before or at the same date as date2.
      */
     public static boolean isSameOrBeforeDay(final Date date1, final Date date2) {
-        if (date1.before(date2)) {
-            return true;
-        } else {
-            return DateUtils.isSameDay(date1, date2);
-        }
+        return getCalendar(date1, null).compareTo(getCalendar(date2, null)) <= 0;
     }
 
+    /**
+     * Checks if a date is after the other date ignoring the time.
+     *
+     * @param date1 the first date, not altered, not null
+     * @param date2 the second date, not altered, not null
+     * @return true if date1 is after or at the same date as date2.
+     */
+    public static boolean isAfterDay(final Date date1, final Date date2) {
+        return !isSameOrBeforeDay(date1, date2);
+    }
+    
     /**
      * Checks if a date is after or at the same date ignoring the time.
      *
@@ -164,11 +181,7 @@ public final class DateUtils {
      * @return true if date1 is after or at the same date as date2.
      */
     public static boolean isSameOrAfterDay(final Date date1, final Date date2) {
-        if (date1.after(date2)) {
-            return true;
-        } else {
-            return DateUtils.isSameDay(date1, date2);
-        }
+        return getCalendar(date1, null).compareTo(getCalendar(date2, null)) >= 0;
     }
 
     /**
@@ -177,7 +190,7 @@ public final class DateUtils {
      * @return current time.
      */
     public static Date now() {
-        return Calendar.getInstance().getTime();
+        return getCalendar(null, null).getTime();
     }
     
     /**
@@ -214,7 +227,7 @@ public final class DateUtils {
                 throw new IllegalArgumentException("Unsupported time unit: " + unit);
         }
         
-        final Calendar calendar = Calendar.getInstance();
+        final Calendar calendar = getCalendar(null, null);
         calendar.setTime(date);
         calendar.add(calendarCode, quantity);
         
