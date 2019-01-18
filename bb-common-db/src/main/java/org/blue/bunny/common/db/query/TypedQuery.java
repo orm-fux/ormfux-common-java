@@ -21,6 +21,7 @@ import org.blue.bunny.common.db.generators.LongIncrementGenerator;
 import org.blue.bunny.common.db.generators.NoValueGenerator;
 import org.blue.bunny.common.db.generators.ValueGenerator;
 import org.blue.bunny.common.db.query.QueryResult.QueryResultRow;
+import org.blue.bunny.common.db.query.connection.DbConnectionProvider;
 import org.blue.bunny.common.utils.reflection.ClassUtils;
 import org.blue.bunny.common.utils.reflection.PropertyUtils;
 
@@ -42,21 +43,21 @@ public class TypedQuery<T> extends AbstractQuery {
     private final String entityAlias;
     
     /**
-     * @param dbConnection URL to the database to use.
+     * @param dbConnection The connection to the database.
      * @param querySuffix The suffix (joins, where conditions, sort, etc.) for the query.
      * @param resultType The entity type.
      */
-    public TypedQuery(final String dbConnection, final String querySuffix, final Class<T> resultType) {
+    protected TypedQuery(final DbConnectionProvider dbConnection, final String querySuffix, final Class<T> resultType) {
        this(dbConnection, querySuffix, resultType, null);
     }
     
     /**
-     * @param dbConnection URL to the database to use.
+     * @param dbConnection The connection to the database.
      * @param querySuffix The suffix (joins, where conditions, sort, etc.) for the query.
      * @param resultType The entity type.
      * @param entityAlias The alias for the table to use in the automatically generated query parts.
      */
-    public TypedQuery(final String dbConnection, final String querySuffix, final Class<T> resultType, final String entityAlias) {
+    protected TypedQuery(final DbConnectionProvider dbConnection, final String querySuffix, final Class<T> resultType, final String entityAlias) {
         super(dbConnection, querySuffix);
         
         if (!resultType.isAnnotationPresent(Entity.class)) {
@@ -179,7 +180,7 @@ public class TypedQuery<T> extends AbstractQuery {
         queryString.append(insertCollectionsQuery.getQueryString());
         queryParams.putAll(insertCollectionsQuery.getQueryParams());
         
-        final Query query = new Query(getDbConnection(), queryString.toString());
+        final Query query = new Query(getDbConnectionProvider(), queryString.toString());
         query.addParameter("id", PropertyUtils.read(entity, idField.getName()));
         query.addParameters(queryParams);
         
@@ -267,7 +268,7 @@ public class TypedQuery<T> extends AbstractQuery {
         queryString.append(insertCollectionsQuery.getQueryString());
         queryParams.putAll(insertCollectionsQuery.getQueryParams());
         
-        final Query query = new Query(getDbConnection(), queryString.toString());
+        final Query query = new Query(getDbConnectionProvider(), queryString.toString());
         query.addParameters(queryParams);
         
         if (query.executeUpdate() < 1) {
@@ -325,7 +326,7 @@ public class TypedQuery<T> extends AbstractQuery {
             }
         }
         
-        final Query query = new Query(getDbConnection(), insertCollectionsQuery.toString());
+        final Query query = new Query(getDbConnectionProvider(), insertCollectionsQuery.toString());
         query.addParameters(paramValues);
         
         return query; 
@@ -353,7 +354,7 @@ public class TypedQuery<T> extends AbstractQuery {
         
         final Query collectionVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
         
-        final Query query = new Query(getDbConnection(), collectionVersionQuery.getQueryString() + deleteQuery.toString());
+        final Query query = new Query(getDbConnectionProvider(), collectionVersionQuery.getQueryString() + deleteQuery.toString());
         query.addParameters(collectionVersionQuery.getQueryParams());
         query.addParameter("id", PropertyUtils.read(entity, idField.getName()));
         
@@ -447,7 +448,7 @@ public class TypedQuery<T> extends AbstractQuery {
             }
         }
         
-        final Query query = new Query(getDbConnection(), insertCollectionsQuery.toString());
+        final Query query = new Query(getDbConnectionProvider(), insertCollectionsQuery.toString());
         query.addParameters(paramValues);
         
         return query; 
@@ -515,7 +516,7 @@ public class TypedQuery<T> extends AbstractQuery {
         }
         
         //use classic query
-        final Query query = new Query(getDbConnection(), queryString);
+        final Query query = new Query(getDbConnectionProvider(), queryString);
         query.addParameters(getQueryParams());
         
         final QueryResult queryResults = query.getResultList();
@@ -612,7 +613,7 @@ public class TypedQuery<T> extends AbstractQuery {
                     collectionQuerySuffix = " where " + collEntityTable + '.' + collDef.joinColumn() + " = :id ";
                 }
                 
-                final TypedQuery<?> collectionQuery = new TypedQuery<>(getDbConnection(), collectionQuerySuffix, collectionEntityType);
+                final TypedQuery<?> collectionQuery = new TypedQuery<>(getDbConnectionProvider(), collectionQuerySuffix, collectionEntityType);
                 collectionQuery.addParameter("id", entityId);
                 
                 final List<?> collectionEntities = collectionQuery.getResultList(loadedEntities);
@@ -687,7 +688,7 @@ public class TypedQuery<T> extends AbstractQuery {
         
         final String querySuffix = "where " + getTableName() + '.' + columnDef.columnName() + " = :id";
         
-        final TypedQuery<T> loadQuery = new TypedQuery<>(getDbConnection(), querySuffix, entityType);
+        final TypedQuery<T> loadQuery = new TypedQuery<>(getDbConnectionProvider(), querySuffix, entityType);
         loadQuery.addParameter("id", entityId);
         
         return loadQuery.getSingleResult(loadedEntities);
@@ -707,7 +708,7 @@ public class TypedQuery<T> extends AbstractQuery {
         Object loadedEntity = loadedEntities.get(entityType.getName() + ':' + entityId);
         
         if (loadedEntity == null) {
-            final TypedQuery<?> query = new TypedQuery<>(getDbConnection(), null, entityType);
+            final TypedQuery<?> query = new TypedQuery<>(getDbConnectionProvider(), null, entityType);
             loadedEntity = query.load(entityId, loadedEntities);
         }
         
@@ -783,7 +784,7 @@ public class TypedQuery<T> extends AbstractQuery {
                                         + " where " + tableName + '.' + idColumn.columnName() + " = :id"
                                         + " and " + tableName + '.' + versionColumn.columnName() + " = :version";
         
-        final Query query = new Query(getDbConnection(), versionQuery);
+        final Query query = new Query(getDbConnectionProvider(), versionQuery);
         query.addParameter("id", entityId);
         query.addParameter("version", PropertyUtils.read(entity, versionField.getName()));
         

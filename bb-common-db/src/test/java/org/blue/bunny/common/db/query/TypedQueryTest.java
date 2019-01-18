@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import org.blue.bunny.common.db.query.Query;
 import org.blue.bunny.common.db.query.QueryManager;
 import org.blue.bunny.common.db.query.TypedQuery;
+import org.blue.bunny.common.db.query.connection.H2DbConnectionProvider;
 import org.blue.bunny.common.utils.DateUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +21,12 @@ public class TypedQueryTest {
     @Before
     public void beforeTest() {
         queryManager = new QueryManager();
-        queryManager.setDatabaseUrl("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=MYSQL;DATABASE_TO_UPPER=false;AUTOCOMMIT=false");
+        queryManager.setDatabase(H2DbConnectionProvider.class, 
+                                 "jdbc:h2:mem:test", 
+                                 "DB_CLOSE_DELAY=-1", 
+                                 "MODE=MYSQL", 
+                                 "DATABASE_TO_UPPER=false", 
+                                 "AUTOCOMMIT=false");
         
         queryManager.createQuery("DROP ALL OBJECTS").executeUpdate();
         

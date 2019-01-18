@@ -4,17 +4,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.blue.bunny.common.ioc.annotations.Bean;
 import org.blue.bunny.common.ioc.annotations.Init;
 import org.blue.bunny.common.ioc.annotations.Inject;
+import org.blue.bunny.common.utils.ListUtils;
 import org.blue.bunny.common.utils.reflection.ClassUtils;
 
 /**
@@ -41,9 +42,14 @@ import org.blue.bunny.common.utils.reflection.ClassUtils;
 public final class InjectionContext {
     
     /**
+     * Additional definitions of beans. These beans don't have a {@link Bean} annotation.
+     */
+    private static final List<BeanDescriptor> BEAN_DESCRIPTORS = new ArrayList<>();
+    
+    /**
      * The instance cache of this context.
      */
-    private static Map<Class<?>, Object> beans = new HashMap<>();
+    private static final Map<Class<?>, Object> BEANS = new HashMap<>();
     
     /**
      * Creates a new instance of the given type or gets the matching instance from this context's cache. 
@@ -56,19 +62,20 @@ public final class InjectionContext {
      */
     @SuppressWarnings("unchecked")
     public static <T> T getBean(final Class<T> beanType) {
-        if (isBeanType(beanType)) {
-            final Object bean = beans.get(beanType);
-            
-            if (bean != null) {
-                return (T) bean;
-                
-            } else {
-                return addBean(beanType);
-                
-            }
+        final Object bean = BEANS.get(beanType);
+        
+        if (bean != null) {
+            return (T) bean;
             
         } else {
-            throw new IllegalArgumentException("Not a bean type: " + beanType);
+            if (isAnnotatedBeanType(beanType)) {
+                return addAnnotatedBean(beanType);
+            } else if (isManualBeanType(beanType)) {
+                return addManualBean(beanType);
+                
+            } else {
+                throw new IllegalArgumentException("Not a bean type: " + beanType);
+            }
         }
         
     }
@@ -80,72 +87,47 @@ public final class InjectionContext {
      * @param beanType The type to instantiate.
      * @return The created instance.
      */
-    private static <T> T addBean(final Class<T> beanType) {
+    @SuppressWarnings("unchecked")
+    private static <T> T addManualBean(final Class<T> beanType) {
+        final BeanDescriptor beanDescriptor = getBeanDescriptor(beanType);
+        
+        return addBean((Class<T>) beanDescriptor.getBeanType(), beanDescriptor.isSingleton());
+    }
+    
+    /**
+     * Adds a new instance of the given type to this context's cache. Field values are injected, 
+     * too. This may result in further creation and placement of instances in this cache.
+     * <p/>
+     * The type must be annotated with {@link Bean}.
+     * 
+     * @param beanType The type to instantiate.
+     * @return The created instance.
+     */
+    private static <T> T addAnnotatedBean(final Class<T> beanType) {
+        return addBean(beanType, beanType.getAnnotation(Bean.class).singleton());
+    }
+    
+    /**
+     * Adds a new instance of the given type to this context's cache. Field values are injected, 
+     * too. This may result in further creation and placement of instances in this cache.
+     * <p/>
+     * The type must be annotated with {@link Bean}.
+     * 
+     * @param beanType The type to instantiate.
+     * @param singleton If the bean is a singleton.
+     * @return The created instance.
+     */
+    private static <T> T addBean(final Class<T> beanType, final boolean singleton) {
         try {
             final T bean = ClassUtils.createObject(beanType);
+            
             //For circular references put this in the content immediately.
-            if (beanType.getAnnotation(Bean.class).singleton()) {
-                beans.put(beanType, bean);
+            if (singleton) {
+                BEANS.put(beanType, bean);
             }
             
             //Inject values into bean.
-            Class<?> currentType = beanType;
-            
-            while (currentType != null) {
-                for (final Field beanField : currentType.getDeclaredFields()) {
-                    Class<?> fieldType = null;
-                    
-                    if (beanField.isAnnotationPresent(Inject.class)) {
-                        
-                        //we need to do some extra work for generic fields.
-                        final Type genericType = beanField.getGenericType();
-                        
-                        if (genericType instanceof TypeVariable) {
-                            final TypeVariable<?> typeVariable = (TypeVariable<?>) genericType;
-                            //TODO move this to ClassUtils.
-                            //get first class type argument which is a super type of the generic declaration
-                            //how to identify by name?
-                            final Type[] bounds = typeVariable.getBounds();
-                            final Class<?> boundType;
-                            
-                            if (bounds[0] instanceof ParameterizedType) {
-                                boundType = (Class<?>) ((ParameterizedType) bounds[0]).getRawType();
-                            } else {
-                                boundType = (Class<?>) bounds[0];
-                            }
-                            
-                            final ParameterizedType parameterizedSuperClass = ClassUtils.findFirstParameterizedSuperclass(beanType);
-                            final Type[] typeArguments = parameterizedSuperClass.getActualTypeArguments();
-                            
-                            for (final Type typeArgument : typeArguments) {
-                                if (boundType.isAssignableFrom((Class<?>) typeArgument)) {
-                                    fieldType = (Class<?>) typeArgument;
-                                    break;
-                                }
-                                
-                            }
-                            
-                        } else {
-                            fieldType = beanField.getType();
-                        }
-                        
-                         final Object fieldValue = getBean(fieldType);
-                         
-                         if (fieldValue != null) {
-                             if (!beanField.canAccess(bean)) {
-                                 beanField.setAccessible(true);
-                             }
-                             
-                             beanField.set(bean, fieldValue);
-                             
-                         } else {
-                             throw new RuntimeException("There is no bean to inject into " + beanType.getName() + "." + beanField.getName());
-                         }
-                    }
-                }
-                
-                currentType = currentType.getSuperclass();
-            }
+            injectValues(beanType, bean);
             
             //call initialization methods (super-classes first)
             initializeBean(beanType, bean);
@@ -156,6 +138,53 @@ public final class InjectionContext {
             throw new RuntimeException("Cannot create new bean of type " + beanType, e);
         }
     }
+    
+    /**
+     * Injects the values into the bean properties.
+     * 
+     * @param beanType The type of the bean.
+     * @param bean The bean in which to inject.
+     * 
+     * @throws IllegalAccessException
+     */
+    private static <T> void injectValues(final Class<T> beanType, final T bean) throws IllegalAccessException {
+        Class<?> currentType = beanType;
+        
+        while (currentType != null) {
+            for (final Field beanField : currentType.getDeclaredFields()) {
+                
+                if (beanField.isAnnotationPresent(Inject.class)) {
+                    //we need to do some extra work for generic fields.
+                    final Type genericType = beanField.getGenericType();
+                    final Class<?> fieldType;
+                    
+                    if (genericType instanceof TypeVariable) {
+                        final TypeVariable<?> typeVariable = (TypeVariable<?>) genericType;
+                        fieldType = ClassUtils.getTypeForGeneric(beanType, typeVariable);
+                        
+                    } else {
+                        fieldType = beanField.getType();
+                    }
+                    
+                     final Object fieldValue = getBean(fieldType);
+                     
+                     if (fieldValue != null) {
+                         if (!beanField.canAccess(bean)) {
+                             beanField.setAccessible(true);
+                         }
+                         
+                         beanField.set(bean, fieldValue);
+                         
+                     } else {
+                         throw new RuntimeException("There is no bean to inject into " + beanType.getName() + "." + beanField.getName());
+                     }
+                }
+            }
+            
+            currentType = currentType.getSuperclass();
+        }
+    }
+
     
     /**
      * Calls the methods of the bean, which have the {@code @Init} annotation. Invokes top-down in the inheritance 
@@ -186,13 +215,64 @@ public final class InjectionContext {
     }
     
     /**
+     * Adds a definition of a bean (without Bean-annotation) to the InjectionContext.
+     * Use this, when you want to use something as a Bean, but cannot modify its source.
+     * <p/>
+     * Each type can only be registered once!
+     *  
+     * @param beanType The type of the bean.
+     * @param singleton If the bean shall be a singleton.
+     */
+    public static void addBeanDefinition(final Class<?> beanType, final boolean singleton) {
+        addBeanDefinition(new BeanDescriptor(beanType, singleton));
+    }
+    
+    /**
+     * Adds a definition of a bean (without Bean-annotation) to the InjectionContext.
+     * Use this, when you want to use something as a Bean, but cannot modify its source.
+     * <p/>
+     * Each type can only be registered once!
+     *  
+     * @param beanDescriptor The bean definition.
+     */
+    public static void addBeanDefinition(final BeanDescriptor beanDescriptor) {
+        if (!BEAN_DESCRIPTORS.contains(beanDescriptor)) {
+            if (isAnnotatedBeanType(beanDescriptor.getBeanType())) {
+                throw new IllegalArgumentException("The type is already a bean. No need to add it manually: " + beanDescriptor.getBeanType());
+            } else {
+                BEAN_DESCRIPTORS.add(beanDescriptor);
+            }
+        }
+    }
+    
+    /**
+     * Checks, if the provided type is type registered as a "manual bean".
+     *  
+     * @param beanType The bean type.
+     * @return {@code true} when a manual bean.
+     */
+    private static boolean isManualBeanType(final Class<?> beanType) {
+        return getBeanDescriptor(beanType) != null;
+    }
+    
+    /**
+     * Gets the descriptor for the bean type.
+     * 
+     * @param beanType The bean type.
+     * @return the descriptor; {@code null} when there is none.
+     */
+    private static BeanDescriptor getBeanDescriptor(final Class<?> beanType) {
+        return ListUtils.selectFirst(BEAN_DESCRIPTORS, beanDescriptor -> Objects.equals(beanType, beanDescriptor.getBeanType()));
+    }
+    
+    /**
      * Checks if the given type is a type which this context can handle. This is the case when 
      * it is annotated with {@link Bean} and not abstract.
      * 
      * @param beanType The type.
      * @return {@code true} when this context can handle the type.
      */
-    private static boolean isBeanType(Class<?> beanType) {
+    private static boolean isAnnotatedBeanType(Class<?> beanType) {
         return beanType.isAnnotationPresent(Bean.class) && !Modifier.isAbstract(beanType.getModifiers());
     }
     

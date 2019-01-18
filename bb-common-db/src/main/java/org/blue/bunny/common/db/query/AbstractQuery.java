@@ -1,11 +1,13 @@
 package org.blue.bunny.common.db.query;
 
+import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.blue.bunny.common.db.exception.DuplicateParamException;
 import org.blue.bunny.common.db.exception.SQLException;
+import org.blue.bunny.common.db.query.connection.DbConnectionProvider;
 
 /**
  * Base class for queries.
@@ -13,9 +15,9 @@ import org.blue.bunny.common.db.exception.SQLException;
 public abstract class AbstractQuery {
     
     /**
-     * The database connection with which to execute the query.
+     * The provider for the database connection.
      */
-    private final String dbConnection;
+    private final DbConnectionProvider dbConnectionProvider;
     
     /**
      * The query to execute.
@@ -30,11 +32,11 @@ public abstract class AbstractQuery {
     /**
      * Creates a new query.
      * 
-     * @param dbConnection The database URL on which to execute the query.
+     * @param dbConnection The connection to the database.
      * @param queryString The query to execute.
      */
-    protected AbstractQuery(final String dbConnection, final String queryString) {
-        this.dbConnection = dbConnection;
+    protected AbstractQuery(final DbConnectionProvider dbConnection, final String queryString) {
+        this.dbConnectionProvider = dbConnection;
         this.queryString = queryString;
     }
     
@@ -68,8 +70,15 @@ public abstract class AbstractQuery {
     /**
      * The database connection with which to execute the query.
      */
-    protected String getDbConnection() {
-        return dbConnection;
+    protected Connection getDbConnection() {
+        return dbConnectionProvider.getConnection();
+    }
+    
+    /**
+     * The provider for the database connection.
+     */
+    protected DbConnectionProvider getDbConnectionProvider() {
+        return dbConnectionProvider;
     }
     
     /**

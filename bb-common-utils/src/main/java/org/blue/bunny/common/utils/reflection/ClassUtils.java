@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,8 +26,34 @@ public final class ClassUtils {
      * @return The instance.
      */
     public static <T> T createObject(final Class<T> objectType) {
+        return createObject(objectType, null, null);
+    }
+    
+    /**
+     * Creates a new Object from the given Class. Uses the public, no-argument constructor.
+     * 
+     * @param objectType The class.
+     * @param constructorArgTypes Types of the constructor parameters (in the order they are defined in the constructor)
+     * @param constructorArgs The values for the constructor parameters (in the order they are used).
+     * @return The instance.
+     */
+    public static <T> T createObject(final Class<T> objectType, 
+                                     final List<Class<?>> constructorArgTypes,
+                                     final List<Object> constructorArgs) {
+        
         try {
-            return objectType.getDeclaredConstructor().newInstance();
+            if (constructorArgTypes != null) {
+                if (constructorArgTypes.size() != constructorArgs.size()) {
+                    throw new IllegalArgumentException("Not enough values for the constructor arguments.");
+                } else {
+                    return objectType.getDeclaredConstructor(constructorArgTypes.toArray(new Class[0]))
+                                     .newInstance(constructorArgs.toArray(new Object[0]));
+                }
+                
+            } else {
+                return objectType.getDeclaredConstructor().newInstance();
+            }
+            
         } catch (final InstantiationException | IllegalAccessException 
                         | IllegalArgumentException | InvocationTargetException
                         | NoSuchMethodException | SecurityException e) {
@@ -35,8 +62,39 @@ public final class ClassUtils {
     }
     
     /**
-     * Traverses the inheritance hierache bottom-up an returns the first super-class,
-     * which has a generic.
+     * Gets the first class type argument which is a super type of the generic declaration.
+     * 
+     * @param genericProviderType The class defining the generic.
+     * @param typeVariable The type variable for which to resolve the type.
+     * @return The resolved type; {@code null} when not found.
+     */
+    //TODO how to identify by name?
+    public static <T> Class<?> getTypeForGeneric(final Class<T> genericProviderType, final TypeVariable<?> typeVariable) {
+        final Type[] bounds = typeVariable.getBounds();
+        final Class<?> boundType;
+        
+        if (bounds[0] instanceof ParameterizedType) {
+            boundType = (Class<?>) ((ParameterizedType) bounds[0]).getRawType();
+        } else {
+            boundType = (Class<?>) bounds[0];
+        }
+        
+        final ParameterizedType parameterizedSuperClass = ClassUtils.findFirstParameterizedSuperclass(genericProviderType);
+        final Type[] typeArguments = parameterizedSuperClass.getActualTypeArguments();
+        
+        for (final Type typeArgument : typeArguments) {
+            if (boundType.isAssignableFrom((Class<?>) typeArgument)) {
+                return (Class<?>) typeArgument;
+            }
+            
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Traverses the inheritance hierarchy bottom-up an returns the first super-class, which has a generic.
+     * 
      * @param clazz The class for which to get the generic super class.
      * @return ParameterizedType of super class; {@code null} when there is none.
      */

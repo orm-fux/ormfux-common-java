@@ -2,7 +2,6 @@ package org.blue.bunny.common.db.query;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -18,6 +17,7 @@ import org.blue.bunny.common.db.exception.NonMatchedParamException;
 import org.blue.bunny.common.db.exception.NonUniqueResultException;
 import org.blue.bunny.common.db.exception.SQLException;
 import org.blue.bunny.common.db.query.QueryResult.QueryResultRow;
+import org.blue.bunny.common.db.query.connection.DbConnectionProvider;
 import org.blue.bunny.common.utils.ListUtils;
 import org.blue.bunny.common.utils.reflection.ClassUtils;
 import org.blue.bunny.common.utils.reflection.PropertyUtils;
@@ -31,10 +31,10 @@ public class Query extends AbstractQuery {
     /**
      * Creates a new query.
      * 
-     * @param dbConnection The database URL on which to execute the query.
+     * @param dbConnection TThe connection to the database.
      * @param queryString The query to execute.
      */
-    protected Query(final String dbConnection, final String queryString) {
+    protected Query(final DbConnectionProvider dbConnection, final String queryString) {
         super(dbConnection, queryString);
     }
     
@@ -51,7 +51,7 @@ public class Query extends AbstractQuery {
         
         try {
             int affectedRows = 0;
-            final Connection connection = DriverManager.getConnection(getDbConnection());
+            final Connection connection = getDbConnection();
             
             //Multiple parameterized queries in one query string are not supported by H2. so we need to split.
             final String[] subQueries = StringUtils.split(preparedQuery.getQueryString(), ';');
@@ -129,7 +129,7 @@ public class Query extends AbstractQuery {
         final PreparedQuery preparedQuery = prepareQueryForExecution();
         
         try {
-            final Connection connection = DriverManager.getConnection(getDbConnection());
+            final Connection connection = getDbConnection();
             final PreparedStatement statement = connection.prepareStatement(preparedQuery.getQueryString());
             
             try {

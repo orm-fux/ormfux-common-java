@@ -1,34 +1,28 @@
 package org.blue.bunny.common.db.query;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
+import java.util.Arrays;
 
-import org.blue.bunny.common.db.exception.SQLException;
-import org.blue.bunny.common.ioc.annotations.Bean;
-import org.h2.Driver;
+import org.blue.bunny.common.db.query.connection.AbstractDbConnectionProvider;
+import org.blue.bunny.common.db.query.connection.DbConnectionProvider;
+import org.blue.bunny.common.utils.reflection.ClassUtils;
 
 /**
- * A manager, which allows to execute queries on an H2 database.
+ * A manager, which allows to execute queries on a database.
  */
-@Bean
 public class QueryManager {
     
-    /**
-     * The database URL.
-     */
-    private String databaseUrl;
-    
-    /**
-     * Loads the database driver.
-     */
-    public QueryManager() throws SQLException {
-        try {
-            Class.forName(Driver.class.getName());
-        } catch (final ClassNotFoundException e) {
-            throw new SQLException("Could not load database driver.", e);
+    static {
+        //Make this manager available as an injectable "service", but only when the injection
+        //framework is available.
+        if (BeanRegistrator.isInjectionFrameworkAvailable()) {
+            BeanRegistrator.registerAsBean(QueryManager.class, true);
         }
     }
+    
+    /**
+     * The provider for the database connections.
+     */
+    private DbConnectionProvider connectionProvider;
     
     /**
      * Creates a new query for this manager's database.
@@ -36,61 +30,74 @@ public class QueryManager {
      * @param queryString The query.
      */
     public Query createQuery(final String queryString) {
-        return new Query(databaseUrl, queryString);
+        return new Query(connectionProvider, queryString);
     }
     
     /**
      * Creates a new "select all" query for the entity type. The type must be annotated with {@code @Entity}
      * 
-     * @param entityType The type fo entity to query.
+     * @param entityType The type of entity to query.
      */
     public <T> TypedQuery<T> createQuery(final Class<T> entityType) {
-        return new TypedQuery<>(databaseUrl, null, entityType);
+        return new TypedQuery<>(connectionProvider, null, entityType);
     }
     
     /**
      * Creates a new query for the entity type. Adds the suffix to the query. The suffix can consist of joins, 
      * where conditions, etc.
      * 
-     * @param entityType The type fo entity to query.
+     * @param entityType The type of entity to query.
      * @param querySuffix The suffix for the query.
      */
     public <T> TypedQuery<T> createQuery(final Class<T> entityType, final String querySuffix) {
-        return new TypedQuery<>(databaseUrl, querySuffix, entityType);
+        return new TypedQuery<>(connectionProvider, querySuffix, entityType);
     }
     
     /**
      * Creates a new query for the entity type. Adds the suffix to the query. The suffix can consist of joins, 
      * where conditions, etc.
      * 
-     * @param entityType The type fo entity to query.
+     * @param entityType The type of entity to query.
      * @param querySuffix The suffix for the query.
      * @param entityAlias Alias for the entity in the query when the auto-generated one should not be used.
      */
     public <T> TypedQuery<T> createQuery(final Class<T> entityType, final String querySuffix, final String entityAlias) {
-        return new TypedQuery<>(databaseUrl, querySuffix, entityType, entityAlias);
+        return new TypedQuery<>(connectionProvider, querySuffix, entityType, entityAlias);
     }
     
     /**
-     * The database URL.
+     * Sets the database to which to connect with this manager.
+     * 
+     * @param connectionProviderType The type of provider for the database connection.
+     * @param databaseUrl The URL to the database.
+     * @param connectionParams Parameters for the connection.
      */
-    public void setDatabaseUrl(final String databaseUrl) {
-        this.databaseUrl = databaseUrl;
-    }
-    
-    /**
-     * Closes all connections to the database and releases the lock on the database file. 
-     */
-    public void closeAllDbConnections() {
-        try {
-            final Connection closeConnection = DriverManager.getConnection(databaseUrl);
-            final Statement closeStatement = closeConnection.createStatement();
-            closeStatement.execute("SHUTDOWN");
-            closeStatement.close();
-            closeConnection.close();
-        } catch (java.sql.SQLException e) {
-            throw new SQLException("Cannot connect to database.", e);
+    public void setDatabase(final Class<? extends AbstractDbConnectionProvider> connectionProviderType, 
+                            final String databaseUrl, 
+                            final String... connectionParams) {
+        if (this.connectionProvider != null) {
+            connectionProvider.closeAllConnections();
         }
+        
+        connectionProvider = ClassUtils.createObject(connectionProviderType, 
+                                                     Arrays.asList(String.class, String[].class), 
+                                                     Arrays.asList(databaseUrl, connectionParams));
+    }
+    
+    /**
+     * If the underlying {@link DbConnectionProvider} can create a database backup.
+     */
+    public boolean isCanBackupDatabase() {
+        return connectionProvider.isCanBackupDatabase();
+    }
+    
+    /**
+     * Uses the underlying {@link DbConnectionProvider} to create a database backup.
+     * 
+     * @param databaseVersion A version indicator for the backed up database.
+     */
+    public void backupDatabase(final CharSequence databaseVersion) {
+        connectionProvider.backupDatabase(databaseVersion);
     }
     
 }
