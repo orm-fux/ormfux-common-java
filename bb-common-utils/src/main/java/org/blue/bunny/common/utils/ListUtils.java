@@ -53,8 +53,35 @@ public final class ListUtils {
      * @return the first element from the given list that evaluates the given predicate to
      *         {@code true};  {@code null} when there is none.
      */
-    public static <T> T selectFirst(final Collection<T> list, final Predicate<T> predicate) {
+    public static <T> T selectFirst(final List<T> list, final Predicate<T> predicate) {
         return CollectionUtils.selectFirst(list, predicate);
+    }
+    
+    /**
+     * Returns the last element from the given list that evaluates the given predicate to
+     * {@code true}.
+     * 
+     * @param <T> The type of the list.
+     * 
+     * @param list a list.
+     * @param predicate a predicate.
+     * @return the last element from the given list that evaluates the given predicate to
+     *         {@code true};  {@code null} when there is none.
+     */
+    public static <T> T selectLast(final List<T> list, final Predicate<T> predicate) {
+        if (list.isEmpty()) {
+            return null;
+        } else {
+            for (int elemIndex = list.size() - 1; elemIndex >= 0; elemIndex--) {
+                final T element = list.get(elemIndex);
+                
+                if (predicate.test(element)) {
+                    return element;
+                }
+            }
+        }
+        
+        return null;
     }
     
     /**
@@ -81,8 +108,18 @@ public final class ListUtils {
         if (list.isEmpty()) {
             return null;
         } else {
-            return list.get(list.size() - 1);
+            return list.get(maxIndex(list));
         }
+    }
+    
+    /**
+     * Alternate notation for {@code list.size() -1}.
+     * 
+     * @param list The list.
+     * @return The maximum list element index.
+     */
+    public static int maxIndex(final List<?> list) {
+        return list.size() - 1;
     }
     
     /**

@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.blue.bunny.common.utils.ListUtils;
 
 /**
  * utilities for working with methods and "method/property paths".
@@ -218,12 +219,12 @@ public final class MethodUtils {
         
         if (lastMethodPos > 0) {
             final List<Method> methodPath = getPropertyGetterPath(root, pathToMethod.substring(0, lastMethodPos), null);
-            final Class<?> lastGetterReturnType = methodPath.get(methodPath.size() - 1).getReturnType();
+            final Class<?> lastGetterReturnType = ListUtils.last(methodPath).getReturnType();
             methodPath.add(getPublicMethod(lastGetterReturnType, pathToMethod.substring(lastMethodPos + 1), returnType, parameterTypes));
             
             return methodPath;
         } else {
-            final List<Method> methodPath = new ArrayList<Method>(1);
+            final List<Method> methodPath = new ArrayList<>(1);
             methodPath.add(getPublicMethod(root, pathToMethod, returnType, parameterTypes));
             
             return methodPath;
@@ -257,7 +258,7 @@ public final class MethodUtils {
         
         if (lastMethodPos > 0) {
             final List<Method> methodPath = getPropertyGetterPath(root, pathToMethod.substring(0, lastMethodPos), null);
-            final Class<?> lastGetterReturnType = methodPath.get(methodPath.size() - 1).getReturnType();
+            final Class<?> lastGetterReturnType = ListUtils.last(methodPath).getReturnType();
             
             methodPath.add(getPublicMethodWithNullArguments(lastGetterReturnType, 
                                                             pathToMethod.substring(lastMethodPos + 1), 
@@ -480,9 +481,9 @@ public final class MethodUtils {
             
             final Object invocationResult = propertyGetterPath.get(i).invoke(currentObject);
             
-            if (invocationResult == null && i < propertyGetterPath.size() - 1 && createIntermediate) {
+            if (invocationResult == null && i < ListUtils.maxIndex(propertyGetterPath) && createIntermediate) {
                 //object is missing on the path to last getter. create intermediate objects
-                currentObject = createObjectsForPath(currentObject, propertyGetterPath.subList(i, propertyGetterPath.size() - 1));
+                currentObject = createObjectsForPath(currentObject, propertyGetterPath.subList(i, ListUtils.maxIndex(propertyGetterPath)));
                 //last getter for next loop-cycle
                 i = propertyGetterPath.size() - 2;
             } else {
@@ -534,7 +535,7 @@ public final class MethodUtils {
                                                                                            NoSuchMethodException {
         Object currentObject = root;
         
-        for (int i = 0; i < propertySetterPath.size() - 1; i++) {
+        for (int i = 0; i < ListUtils.maxIndex(propertySetterPath); i++) {
 //            if (currentObject == null) {
 //                return null;
 //            }
@@ -545,7 +546,7 @@ public final class MethodUtils {
                 if (createIntermediate) {
                     //object is missing on the path to last getter
                     //create intermediate objects
-                    currentObject = createObjectsForPath(currentObject, propertySetterPath.subList(i, propertySetterPath.size() - 1));
+                    currentObject = createObjectsForPath(currentObject, propertySetterPath.subList(i, ListUtils.maxIndex(propertySetterPath)));
                     break;
                 } else {
                     throw new NullPointerException(propertySetterPath.get(i).getDeclaringClass().getName() 
@@ -557,7 +558,7 @@ public final class MethodUtils {
         }
         
         //set the value
-        final Method setterMethod = propertySetterPath.get(propertySetterPath.size() - 1);
+        final Method setterMethod = ListUtils.last(propertySetterPath);
         final Object result = setterMethod.invoke(currentObject, new Object[]{valueToSet});
         
         return result;
