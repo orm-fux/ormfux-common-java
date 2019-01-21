@@ -35,9 +35,7 @@ public enum TimeUnit {
             if (date == null) {
                 return null;
             } else {
-                final Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.setTimeInMillis(date.getTime());
+                final Calendar calendar = toCalendar(date);
                 
                 while (calendar.get(Calendar.DAY_OF_WEEK) != calendar.getFirstDayOfWeek()) {
                     calendar.add(Calendar.DATE, -1); // Substract 1 day until first day of week.
@@ -54,9 +52,7 @@ public enum TimeUnit {
             if (date == null) {
                 return null;
             } else {
-                final Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.setTimeInMillis(date.getTime());
+                final Calendar calendar = toCalendar(date);
                 
                 final int week = calendar.get(getCalendarCode());
                 
@@ -83,9 +79,7 @@ public enum TimeUnit {
             if (date == null) {
                 return null;
             } else {
-                final Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.setTimeInMillis(date.getTime());
+                final Calendar calendar = toCalendar(date);
                 
                 while (calendar.get(Calendar.DATE) > 1) {
                     calendar.add(Calendar.DATE, -1); // Substract 1 day until first day of month.
@@ -101,10 +95,7 @@ public enum TimeUnit {
             if (date == null) {
                 return null;
             } else {
-                final Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.setTimeInMillis(date.getTime());
-                
+                final Calendar calendar = toCalendar(date);
                 final int month = calendar.get(getCalendarCode());
                 
                 while (calendar.get(getCalendarCode()) == month) {
@@ -129,9 +120,7 @@ public enum TimeUnit {
                 return null;
                 
             } else {
-                final Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.setTimeInMillis(date.getTime());
+                final Calendar calendar = toCalendar(date);
                 
                 while (calendar.get(Calendar.DAY_OF_YEAR) > 1) {
                     calendar.add(Calendar.DATE, -1); // Subtract 1 day until first day of year.
@@ -148,10 +137,7 @@ public enum TimeUnit {
                 return null;
                 
             } else {
-                final Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                calendar.setTimeInMillis(date.getTime());
-                
+                final Calendar calendar = toCalendar(date);
                 final int year = calendar.get(getCalendarCode());
                 
                 while (calendar.get(getCalendarCode()) == year) {
@@ -163,7 +149,7 @@ public enum TimeUnit {
                 return calendar.getTime();
             }
         }
-        
+
     };
     
     /**
@@ -196,4 +182,19 @@ public enum TimeUnit {
      * (e.g. the date representing the last day of a week)
      */
     public abstract Date moveDateToLastDayOfInterval(final Date date);
+    
+    /**
+     * Transforms the date to a calendar.
+     * 
+     * @param date The date.
+     * @return The date as calendar.
+     */
+    private static Calendar toCalendar(final Date date) {
+        final Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        calendar.setTimeInMillis(date.getTime());
+        
+        return calendar;
+    }
+    
 }

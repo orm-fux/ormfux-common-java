@@ -3,9 +3,7 @@ package org.blue.bunny.common.utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -18,99 +16,92 @@ public final class ListUtils {
     }
     
     /**
-     * Sorts the given list with the specified sort algorithm.
-     * 
-     * @param toSort the list
-     * @param sortFunction the sort algorithm
-     * @return the sorted list
-     * 
-     * @param <T> the list-entries datatype
-     */
-    public static <T> List<T> sort(List<T> toSort, final BiFunction<T, T, Integer> sortFunction) {
-        Collections.sort(toSort, new Comparator<T>() {
-            public int compare(T o1, T o2) {
-                return sortFunction.apply(o1, o2);
-            }
-        });
-        return toSort;
-    }
-    
-    /**
-     * Maps a source list to a target list.
+     * Transforms the elements of a collection to a list of other typed elements.
      * 
      * @param <S> source type
      * @param <T> target type
-     * @param source source list
-     * @param functor functor
-     * @return target list
+     * 
+     * @param source source list.
+     * @param functor transformation function.
+     * @return list with transformed elements.
      */
-    public static <S, T> List<T> map(Collection<S> source, Function<S, T> functor) {
-        
-        return (List<T>) CollectionUtils.map(source, new ArrayList<T>(), functor);
+    public static <S, T> List<T> map(final Collection<S> source, final Function<S, T> functor) {
+        return (List<T>) CollectionUtils.map(source, new ArrayList<>(), functor);
     }
     
     /**
      * Filters a source list according to a predicate.
      * 
      * @param <T> type parameter
+     * 
      * @param source source list
      * @param predicate predicate
      * @return filtered list
      */
-    public static <T> List<T> filter(Collection<T> source, Predicate<T> predicate) {
-        return (List<T>) CollectionUtils.filter(source, new ArrayList<T>(), predicate);
-    }
-    
-    /**
-     * Returns a list of elements from the given list that evaluate the given predicate to
-     * <code>true</code>.
-     * 
-     * @param <T> The type of the list.
-     * 
-     * @param list a list.
-     * @param predicate a predicate.
-     * @return a list of elements from the given list that evaluate the given predicate to
-     *         <code>true</code>.
-     */
-    public static <T> List<T> select(Collection<T> list, Predicate<T> predicate) {
-        ArrayList<T> result = new ArrayList<T>();
-        CollectionUtils.select(list, predicate, result);
-        return result;
+    public static <T> List<T> filter(final Collection<T> source, final Predicate<T> predicate) {
+        return (List<T>) CollectionUtils.filter(source, new ArrayList<>(), predicate);
     }
     
     /**
      * Returns the first element from the given list that evaluates the given predicate to
-     * <code>true</code>.
+     * {@code true}.
      * 
      * @param <T> The type of the list.
      * 
      * @param list a list.
      * @param predicate a predicate.
      * @return the first element from the given list that evaluates the given predicate to
-     *         <code>true</code> or <code>null</code> if no element evaluates the given predicate to
-     *         <code>true</code>.
+     *         {@code true};  {@code null} when there is none.
      */
-    public static <T> T selectFirst(Collection<T> list, Predicate<T> predicate) {
+    public static <T> T selectFirst(final Collection<T> list, final Predicate<T> predicate) {
         return CollectionUtils.selectFirst(list, predicate);
     }
     
     /**
+     * The first element in the list (i.e. a better notation for {@code list.get(0)}).
+     * 
+     * @param list The list.
+     * @return The first element. {@code null} when the list is empty.
+     */
+    public static <T> T first(final List<T> list) {
+        if (list.isEmpty()) {
+            return null;
+        } else {
+            return list.get(0);
+        }
+    }
+    
+    /**
+     * The last element in the list (i.e. a better notation for {@code list.get(list.size() - 1)}).
+     * 
+     * @param list The list.
+     * @return The last element. {@code null} when the list is empty.
+     */
+    public static <T> T last(final List<T> list) {
+        if (list.isEmpty()) {
+            return null;
+        } else {
+            return list.get(list.size() - 1);
+        }
+    }
+    
+    /**
      * Determines whether an element in the given list evaluates the given predicate to
-     * <code>true</code>.
+     * {@code true}.
      * 
      * @param <T> The type of the list.
      * 
      * @param list a list.
      * @param predicate a predicate.
-     * @return <code>true</code> if an element in the given list evaluates the given predicate to
-     *         <code>true</code>, <code>false</code> otherwise.
+     * @return {@code true} when there is a matching element.
      */
-    public static <T> boolean exists(Collection<T> list, Predicate<T> predicate) {
+    public static <T> boolean exists(final Collection<T> list, final Predicate<T> predicate) {
         return CollectionUtils.exists(list, predicate);
     }
     
     /**
-     * Creates a list from the sequence of objects.
+     * Creates a modifiable list from the sequence of objects. The list is <i>not</i> backed
+     * by the array (in contrast to {@code java.util.Arrays.asList()}). 
      * 
      * @param <T> The type of the objects.
      * @param objects The sequence of objects.
@@ -118,36 +109,43 @@ public final class ListUtils {
      * @return The list containing the objects.
      */
     @SafeVarargs
-    public static <T> List<T> fromArray(T... objects) {
-        List<T> result = new ArrayList<T>();
+    public static <T> List<T> fromArray(final T... objects) {
+        final List<T> result = new ArrayList<>();
+        
         if (objects != null && objects.length > 0) {
             Collections.addAll(result, objects);
         }
+        
         return result;
     }
     
     /**
-     * Splits a list into a list of sublists with maximum size of chuck size.
+     * Splits a list into a list of sublists with maximum size of chunk size.
      * 
      * @param <T> type parameter
      * @param list source list
      * @param chunkSize chunk size
+     * 
      * @return a list of sublists
      */
-    public static <T> List<List<T>> split(List<T> list, int chunkSize) {
-        List<List<T>> subLists = new ArrayList<List<T>>();
-        int totalSize = list.size();
+    public static <T> List<List<T>> split(final List<T> list, final int chunkSize) {
+        final List<List<T>> subLists = new ArrayList<>();
+        final int totalSize = list.size();
         int from = 0;
+        
         while (true) {
-            int to = from + chunkSize;
+            final int to = from + chunkSize;
+            
             if (to >= totalSize) {
                 subLists.add(list.subList(from, totalSize));
                 break;
             } else {
                 subLists.add(list.subList(from, to));
             }
+            
             from = to;
         }
+        
         return subLists;
     }
 }

@@ -95,17 +95,19 @@ public final class ClassUtils {
     /**
      * Traverses the inheritance hierarchy bottom-up an returns the first super-class, which has a generic.
      * 
-     * @param clazz The class for which to get the generic super class.
+     * @param objectType The class for which to get the generic super class.
      * @return ParameterizedType of super class; {@code null} when there is none.
      */
-    public static ParameterizedType findFirstParameterizedSuperclass(Class<?> clazz) {
-        while (Object.class != clazz) {
-            final Type genericSuperclass = clazz.getGenericSuperclass();
+    public static ParameterizedType findFirstParameterizedSuperclass(final Class<?> objectType) {
+        Class<?> currentClass = objectType;
+        
+        while (currentClass != Object.class) {
+            final Type genericSuperclass = currentClass.getGenericSuperclass();
             
             if (genericSuperclass instanceof ParameterizedType) {
                 return (ParameterizedType) genericSuperclass;
             } else {
-                clazz = clazz.getSuperclass();
+                currentClass = currentClass.getSuperclass();
             }
         }
         
@@ -122,11 +124,10 @@ public final class ClassUtils {
         final ParameterizedType parameterizedSuperclass = findFirstParameterizedSuperclass(clazz);
         
         if (parameterizedSuperclass == null) {
-            throw new IllegalArgumentException(
-                    "Incompatible class. Class must be (directly or indirectly) inherited from one generic class.");
+            throw new IllegalArgumentException("Incompatible class. Class must be (directly or indirectly) inherited from one generic class.");
+        } else {
+            return (Class<?>) parameterizedSuperclass.getActualTypeArguments()[0];
         }
-        
-        return (Class<?>) parameterizedSuperclass.getActualTypeArguments()[0];
     }
     
     /**

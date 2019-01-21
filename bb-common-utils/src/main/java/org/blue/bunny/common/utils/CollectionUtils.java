@@ -24,9 +24,10 @@ public final class CollectionUtils {
      * @return target collection
      */
     public static <S, T> Collection<T> map(final S[] source, final Collection<T> result, final Function<S, T> functor) {
-        for (final S t : source) {
-            result.add(functor.apply(t));
+        for (final S sourceElement : source) {
+            result.add(functor.apply(sourceElement));
         }
+        
         return result;
     }
     
@@ -41,8 +42,8 @@ public final class CollectionUtils {
      * @return target collection
      */
     public static <S, T> Collection<T> map(final Collection<? extends S> source, final Collection<T> result, final Function<S, T> functor) {
-        for (final S t : source) {
-            result.add(functor.apply(t));
+        for (final S sourceElement : source) {
+            result.add(functor.apply(sourceElement));
         }
         return result;
     }
@@ -60,11 +61,10 @@ public final class CollectionUtils {
      */
     @SuppressWarnings("unchecked")
     public static <S, T> T[] mapToArray(final Collection<S> source, final Function<S, T> functor) {
+        final List<T> resultList = new ArrayList<T>(source.size());
         
-        List<T> resultList = new ArrayList<T>(source.size());
-        
-        for (final S t : source) {
-            final T executeResult = functor.apply(t);
+        for (final S sourceElement : source) {
+            final T executeResult = functor.apply(sourceElement);
             
             if (executeResult != null) {
                 // add the non-null results to the list only
@@ -85,82 +85,64 @@ public final class CollectionUtils {
      * @return target array
      */
     public static <T> Collection<T> filter(final Collection<T> source, final Collection<T> result, final Predicate<T> functor) {
-        for (final T t : source) {
-            if (functor.test(t)) {
-                result.add(t);
+        for (final T sourceElement : source) {
+            if (functor.test(sourceElement)) {
+                result.add(sourceElement);
             }
         }
         return result;
     }
     
     /**
-     * Checks whether a collection is null or empty.
+     * Checks whether a collection is {@code null} or empty.
      * 
      * @param <T> type
      * @param collection collection
-     * @return true, if null or empty
+     * @return true, if {@code null} or empty
      */
-    public static <T> boolean isEmpty(Collection<T> collection) {
+    public static <T> boolean isEmpty(final Collection<T> collection) {
         return collection == null || collection.size() == 0;
     }
     
     /**
-     * Returns a collection of elements from the given collection that evaluate the given predicate
-     * to <code>true</code>.
-     * 
-     * @param <T> Parameterized type.
-     * 
-     * @param collection The collection.
-     * @param predicate The predicate from type <code>Predicate1</code>.
-     * @param result The result
-     */
-    public static <T> void select(final Collection<T> collection, final Predicate<T> predicate, final Collection<T> result) {
-        for (final T t : collection) {
-            if (predicate.test(t)) {
-                result.add(t);
-            }
-        }
-    }
-    
-    /**
      * Returns the first element from the given collection that evaluates the given predicate to
-     * <code>true</code>.
+     * {@code true}.
      * 
      * @param <T> Parameterized type.
      * 
      * @param collection a collection.
-     * @param predicate The predicate from type <code>Predicate1</code>.
+     * @param predicate The predicate.
      * @return the first element from the given collection that evaluates the given predicate to
-     *         <code>true</code> or <code>null</code> if no element evaluates the given predicate to
-     *         <code>true</code>.
+     *         {@code true}; {@code null} when there is none.
      */
     public static <T> T selectFirst(final Collection<T> collection, final Predicate<T> predicate) {
-        for (final T t : collection) {
-            if (predicate.test(t)) {
-                return t;
+        for (final T sourceElement : collection) {
+            if (predicate.test(sourceElement)) {
+                return sourceElement;
             }
         }
+        
         return null;
     }
     
     /**
      * Determines whether an element in the given collection evaluates the given predicate to
-     * <code>true</code>.
+     * {@code true}.
      * 
      * @param <T> Parameterized type.
      * 
      * @param collection a collection.
      * @param predicate a predicate.
      * 
-     * @return <code>true</code> if an element in the given collection evaluates the given predicate
-     *         to <code>true</code>, <code>false</code> otherwise.
+     * @return {@code true} when there is an element in the collection fulfilling the predicate.
      */
     public static <T> boolean exists(final Collection<T> collection, final Predicate<T> predicate) {
-        for (final T t : collection) {
-            if (predicate.test(t)) {
+        for (final T sourceElement : collection) {
+            if (predicate.test(sourceElement)) {
                 return true;
             }
         }
+        
         return false;
     }
     
@@ -173,71 +155,64 @@ public final class CollectionUtils {
      * @param col1 source collection.
      * @param col2 target collection.
      * 
-     * @return <code>true</code> if both collections contain same elements, <code>false</code>
-     *         otherwise.
+     * @return {@code true} both collections have the same size and contain the same elements.
      */
     public static <T> boolean isEqual(final Collection<T> col1, final Collection<T> col2) {
-        // equal reference or both null
         if (col1 == col2) {
             return true;
-        }
-        
-        // compare size and elements, when both are not null
-        if (col1 != null && col2 != null) {
-            return col1.size() == col2.size() && col1.containsAll(col2);
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Finds the first entry of a collection or null if the collection is empty.
-     * 
-     * 
-     * @param col collection.
-     * 
-     * @return the first entry or null.
-     */
-    public static Object findEntry(final Collection<?> col) {
-        if (!isEmpty(col)) {
-            for (Object obj : col) {
-                if (obj != null) {
-                    return obj;
+        } else if ((col1 == null && col2 != null) || (col1 != null && col2 == null)) {
+            return false;
+        } else if (col1.size() != col2.size()) {
+            return false;
+        } else {
+            final List<T> remainingContents = new ArrayList<T>(col1);
+            
+            for (final T col2Element : col2) {
+                if (!remainingContents.remove(col2Element)) {
+                    return false;
                 }
             }
+            
+            return remainingContents.isEmpty();
+            
         }
-        return null;
     }
     
     /**
-     * Try to find at least one entry out of 2 collections for introspection.
+     * Converts a collection to a map. The function is used to produce the map keys.
      * 
-     * @param col1 collection1
-     * @param col2 collection2
-     * @return the first entry found or null.
+     * @param <K> key type
+     * @param <E> entry type
+     * 
+     * @param source source collection
+     * @param keyFunction Function to produce the map keys.
+     * @return The map.
      */
-    public static Object findEntry(Collection<?> col1, Collection<?> col2) {
-        Object entry = CollectionUtils.findEntry(col1);
-        if (entry == null) {
-            entry = CollectionUtils.findEntry(col2);
-        }
-        return entry;
+    public static <K, E> Map<K, E> asMap(final Collection<E> source, final Function<E, K> keyFunction) {
+        return asMap(source, keyFunction, Function.identity());
     }
     
     /**
      * Converts a collection to a map.
      * 
      * @param <K> key type
-     * @param <E> entry type
+     * @param <V> map value type
+     * @param <E> collection element type
+     * 
      * @param source source collection
-     * @param functor functor
-     * @return target map
+     * @param keyFunction Function to produce the map keys.
+     * @param keyFunction Function to produce the map values.
+     * @return The collection as map.
      */
-    public static <K, E> Map<K, E> map(Collection<E> source, Function<E, K> functor) {
-        Map<K, E> map = new HashMap<K, E>();
-        for (E e : source) {
-            map.put(functor.apply(e), e);
+    public static <K, V, E> Map<K, V> asMap(final Collection<E> source, 
+                                            final Function<E, K> keyFunction,
+                                            final Function<E, V> valueFunction) {
+        final Map<K, V> map = new HashMap<>();
+        
+        for (final E sourceElement : source) {
+            map.put(keyFunction.apply(sourceElement), valueFunction.apply(sourceElement));
         }
+        
         return map;
     }
     
