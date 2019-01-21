@@ -201,7 +201,7 @@ public final class CollectionUtils {
      * 
      * @param source source collection
      * @param keyFunction Function to produce the map keys.
-     * @param keyFunction Function to produce the map values.
+     * @param valueFunction Function to produce the map values.
      * @return The collection as map.
      */
     public static <K, V, E> Map<K, V> asMap(final Collection<E> source, 
