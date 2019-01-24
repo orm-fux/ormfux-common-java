@@ -20,7 +20,7 @@ public final class DateUtils {
      * @return today
      */
     public static Date today() {
-        return today(null);
+        return today(TimeZone.getDefault());
     }
 
     /**
@@ -30,6 +30,10 @@ public final class DateUtils {
      * @return today
      */
     public static Date today(final TimeZone timeZone) {
+        if (timeZone == null) {
+            throw new IllegalArgumentException("The TimeZone is required.");
+        }
+        
         return getCalendar(null, timeZone).getTime();
     }
 
@@ -39,20 +43,17 @@ public final class DateUtils {
      * @return yesterday.
      */
     public static Date yesterday() {
-        return yesterday(null);
+        return yesterday(now());
     }
 
     /**
      * Return a date representing yesterday 0 o'clock of the parameter date.
      *
      * @param date date
-     * @return yesterday.
+     * @return yesterday of the date.
      */
     public static Date yesterday(final Date date) {
-        final Calendar calendar = getCalendar(date, null);
-        calendar.add(Calendar.DATE, -1);
-        
-        return calendar.getTime();
+        return shift(date, -1, TimeUnit.DAY);
     }
 
     /**
@@ -61,49 +62,47 @@ public final class DateUtils {
      * @return tomorrow
      */
     public static Date tomorrow() {
-        return tomorrow(null);
+        return tomorrow(now());
     }
 
     /**
      * Return a date representing tomorrow 0 o'clock.
      *
      * @param date date
-     * @return yesterday.
+     * @return tomorrow of the date.
      */
     public static Date tomorrow(final Date date) {
-        final Calendar calendar = getCalendar(date, null);
-        calendar.add(Calendar.DATE, 1);
-        
-        return calendar.getTime();
+        return shift(date, 1, TimeUnit.DAY);
     }
 
     /**
      * Returns a calendar object for the given date and timezone. Both
      * parameters may be null (then the current date and default timezone
-     * are used).
+     * are used). The calendar represents the date at 0 o'clock.
      *
      * @param date     date to use for the calendar time
      * @param timeZone time zone to use for the calendar
      * @return a calendar object
      */
     public static Calendar getCalendar(final Date date, final TimeZone timeZone) {
-        Calendar calendar = null;
+        final Calendar calendar;
         
         if (timeZone != null) {
             calendar = Calendar.getInstance(timeZone);
         } else {
             calendar = Calendar.getInstance();
         }
-
+        
         if (date != null) {
             calendar.setTime(date);
         }
-
+        
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
-
+        calendar.setLenient(false);
+        
         return calendar;
     }
 
@@ -132,6 +131,7 @@ public final class DateUtils {
      * @return true if they represent the same day
      */
     public static boolean isSameDay(final Date date1, final Date date2) {
+        checkDatesProvided(date1, date2);
         final Calendar calendar1 = getCalendar(date1, null);
         final Calendar calendar2 = getCalendar(date2, null);
         
@@ -159,6 +159,7 @@ public final class DateUtils {
      * @return true if date1 is before or at the same date as date2.
      */
     public static boolean isSameOrBeforeDay(final Date date1, final Date date2) {
+        checkDatesProvided(date1, date2);
         return getCalendar(date1, null).compareTo(getCalendar(date2, null)) <= 0;
     }
 
@@ -181,7 +182,26 @@ public final class DateUtils {
      * @return true if date1 is after or at the same date as date2.
      */
     public static boolean isSameOrAfterDay(final Date date1, final Date date2) {
+        checkDatesProvided(date1, date2);
         return getCalendar(date1, null).compareTo(getCalendar(date2, null)) >= 0;
+    }
+    
+    /**
+     * Checks that both date values are defined.
+     * 
+     * @param date1 Date 1.
+     * @param date2 Date 2.
+     * 
+     * @throws IllegalArgumentException When one of the dates is not defined.
+     */
+    private static void checkDatesProvided(final Date date1, final Date date2) throws IllegalArgumentException {
+        if (date1 == null) {
+            throw new IllegalArgumentException("date1 is required.");
+        }
+        
+        if (date2 == null) {
+            throw new IllegalArgumentException("date2 is required.");
+        }
     }
 
     /**
@@ -208,6 +228,10 @@ public final class DateUtils {
      * @param unit The unit of the quantity.
      */
     public static Date shift(final Date date, final int quantity, final TimeUnit unit) {
+        if (date == null) {
+            throw new IllegalArgumentException("The date is required.");
+        }
+        
         final int calendarCode;
         
         switch (unit) {
@@ -227,8 +251,7 @@ public final class DateUtils {
                 throw new IllegalArgumentException("Unsupported time unit: " + unit);
         }
         
-        final Calendar calendar = getCalendar(null, null);
-        calendar.setTime(date);
+        final Calendar calendar = getCalendar(date, null);
         calendar.add(calendarCode, quantity);
         
         return calendar.getTime();

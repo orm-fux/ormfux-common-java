@@ -23,7 +23,7 @@ public class IsSameDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertTrue(DateUtils.isSameDay(calendar1.getTime(), calendar2.getTime()));
         assertTrue(DateUtils.isSameDay(calendar2.getTime(), calendar1.getTime()));
         
@@ -42,8 +42,24 @@ public class IsSameDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertFalse(DateUtils.isSameDay(calendar1.getTime(), calendar2.getTime()));
         assertFalse(DateUtils.isSameDay(calendar2.getTime(), calendar1.getTime()));
     }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDate1() {
+        DateUtils.isSameDay(null, DateUtils.now());
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDate2() {
+        DateUtils.isSameDay(DateUtils.now(), null);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDates() {
+        DateUtils.isSameDay(null, null);
+    }
+    
 }
