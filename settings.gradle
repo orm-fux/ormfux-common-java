@@ -1,1 +1,3 @@
-rootProject.name = 'bb-common'
+rootProject.name = 'ormfux-common'
+
+include 'ormfux-common-utils', 'ormfux-common-ioc', 'ormfux-common-db'
