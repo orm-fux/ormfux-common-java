@@ -1,0 +1,13 @@
+dependencies {
+	def h2 = 'com.h2database:h2:1.4.196'
+
+	/* required for usage, not api */
+	implementation project(':ormfux-common-utils')
+	
+	/* dependencies that are only required based on project usage */
+	compileOnly project(':ormfux-common-ioc')
+	compileOnly h2
+	
+	/* test dependencies */
+	testImplementation h2
+}

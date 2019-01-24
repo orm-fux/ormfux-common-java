@@ -1,13 +1,16 @@
+apply plugin: 'eclipse'
+
 configure(subprojects) {
+	apply plugin: 'eclipse'
 	apply plugin: 'java-library'
 	apply plugin: 'maven-publish'
 	
 	/* Java version */
-	sourceCompatibility = '1.11'
-	targetCompatibility = '1.11'
+	sourceCompatibility = '11'
+	targetCompatibility = '11'
 	
 	/* Identifier */
-	group = 'org.blue.bunny'
+	group = 'org.ormfux'
 	archivesBaseName = project.name
 	version = '1.4'
 	
