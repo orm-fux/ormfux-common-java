@@ -20,6 +20,14 @@ configure(subprojects) {
 		testImplementation 'junit:junit:4.11'
 	}
 	
+	/* unit test resources folder */
+	task copyTestResources(type: Copy) {
+	    from "${projectDir}/src/test/resources"
+	    into "${buildDir}/classes/java/test"
+	}
+	
+	processTestResources.dependsOn copyTestResources
+		
 	/* repos */
 	repositories {
 		mavenCentral()
