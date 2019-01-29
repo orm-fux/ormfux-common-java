@@ -65,6 +65,16 @@ public class IsTypeAssignableTest {
         assertTrue(TypeUtils.isTypeAssignable(void.class, Void.class));
     }
     
+    @Test(expected = NullPointerException.class)
+    public void testNullTarget() {
+        TypeUtils.isTypeAssignable(null, SuperClass.class);
+    }
+    
+    @Test(expected = NullPointerException.class)
+    public void testNullAssigned() {
+        TypeUtils.isTypeAssignable(SuperClass.class, null);
+    }
+    
     public static interface Interface {}
     
     public static class SuperClass {}

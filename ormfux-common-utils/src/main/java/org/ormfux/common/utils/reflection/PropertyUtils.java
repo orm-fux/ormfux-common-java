@@ -46,7 +46,7 @@ public final class PropertyUtils {
     }
     
     /**
-     * Read the value of the proeprty from the Object. The property must be publicly readable.
+     * Read the value of the property from the Object. The property must be publicly readable.
      *
      * @param object The Object.
      * @param propertyName The name of the property.
@@ -81,7 +81,7 @@ public final class PropertyUtils {
     }
     
     /**
-     * Read the value to the proeprty of the Object. The propeprty must be publicly writeable.
+     * Read the value to the property of the Object. The property must be publicly writeable.
      *
      * @param object The Object.
      * @param propertyName The name of the property.

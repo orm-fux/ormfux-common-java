@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Utilities for class analysis.
  */
@@ -226,6 +228,10 @@ public final class ClassUtils {
      * @return The field; {@code null} when not found.
      */
     public static Field getField(final Class<?> clazz, final String fieldName) {
+        if (StringUtils.isBlank(fieldName)) {
+            throw new IllegalArgumentException("The fieldName is required.");
+        }
+        
         final List<Field> allFields = getAllFields(clazz);
         
         for (final Field field : allFields) {
