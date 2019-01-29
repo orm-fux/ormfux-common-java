@@ -45,10 +45,10 @@ public final class TypeUtils {
     }
     
     /**
-     * Checks if values of type {@code assigned} can be assigned to preoperties of type {@code target}.
+     * Checks if values of type {@code assigned} can be assigned to properties of type {@code target}.
      *
      * @param target The target type.
-     * @param assigned The type fo the value to assign to target.
+     * @param assigned The type of the value to assign to target.
      * @return {@code true} when assignment is possible.
      */
     public static boolean isTypeAssignable(Class<?> target, Class<?> assigned) {
