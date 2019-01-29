@@ -4,8 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -117,12 +115,19 @@ public final class MethodUtils {
         
         Method getterMethod = null;
         
-        if (propertyType.equals(Boolean.class) || propertyType.equals(boolean.class)) {
+        if (propertyType.equals(boolean.class)) {
             try {
-               getterMethod = entityClass.getMethod(booleanGetterName);
+                getterMethod = entityClass.getMethod(booleanGetterName);
             } catch (final NoSuchMethodException e) {
                 getterMethod = entityClass.getMethod(getterName);
             }
+        } else if (propertyType.equals(Boolean.class)) {
+            try {
+                getterMethod = entityClass.getMethod(getterName);
+            } catch (final NoSuchMethodException e) {
+                getterMethod = entityClass.getMethod(booleanGetterName);
+            }
+            
         } else {
             getterMethod = entityClass.getMethod(getterName);
         }
@@ -198,7 +203,7 @@ public final class MethodUtils {
     }
     
     /**
-     * Transforms aproperty path to a list of methods. E.h. "{@code person.address.setStreet(String)}" will become a list consisting
+     * Transforms a property path to a list of methods. E.h. "{@code person.address.setStreet(String)}" will become a list consisting
      * of the methods "{@code getPerson()}", "{@code getAddress()}", and "{@code setStreet(String)}".
      * 
      * @param root The class at which the property path starts.
@@ -211,7 +216,7 @@ public final class MethodUtils {
                                                final String pathToMethod, 
                                                final Class<?> returnType, 
                                                final Class<?>... parameterTypes) throws NoSuchMethodException {
-        if (pathToMethod == null || pathToMethod.isEmpty() || pathToMethod.startsWith(".") || pathToMethod.endsWith(".")) {
+        if (pathToMethod.isEmpty() || pathToMethod.startsWith(".") || pathToMethod.endsWith(".")) {
             throw new IllegalArgumentException("Invalid path to method '"+pathToMethod+"'");
         }
         
@@ -250,7 +255,7 @@ public final class MethodUtils {
                                                                 final Class<?> returnType, 
                                                                 final Class<?>[] parameterTypes, 
                                                                 final int[] nullArgumentIndices) throws NoSuchMethodException {
-        if (pathToMethod == null || pathToMethod.isEmpty() || pathToMethod.startsWith(".") || pathToMethod.endsWith(".")) {
+        if (pathToMethod.isEmpty() || pathToMethod.startsWith(".") || pathToMethod.endsWith(".")) {
             throw new IllegalArgumentException("Invalid path to method '"+pathToMethod+"'");
         }
         
@@ -304,7 +309,7 @@ public final class MethodUtils {
      * of the parameters, for which the type is not known. This method tries to find the best matching method based
      * on the known types.
      * 
-     * @param root The clas sowning the method.
+     * @param root The class owning the method.
      * @param methodName The name of the method.
      * @param returnType The type returned by the method; can be {@code null}.
      * @param parameterTypes The types of the method parameters in the order as defined by the method.
@@ -317,14 +322,20 @@ public final class MethodUtils {
                                                           final Class<?>[] parameterTypes, 
                                                           final int[] nullArgumentIndices) throws NoSuchMethodException {
         final int noOfParameters = (parameterTypes == null ? 0 : parameterTypes.length) + (nullArgumentIndices == null ? 0 : nullArgumentIndices.length);
-        final List<?> nullArgIndexList = nullArgumentIndices == null ? Collections.EMPTY_LIST : Arrays.asList(nullArgumentIndices);
+        final List<Integer> nullArgIndexList = new ArrayList<>();
+        
+        if (nullArgumentIndices != null) {
+            for (int nullArgumentIndex : nullArgumentIndices) {
+                nullArgIndexList.add(nullArgumentIndex);
+            }
+        }
         
         Method result = null;
         
         for (final Method method : root.getMethods()) {
             final Class<?>[] methodParameterTypes = method.getParameterTypes();
             
-            if (method.getName().equals(methodName)
+            if (methodName.equals(method.getName())
                     && Modifier.isPublic(method.getModifiers())
                     && methodParameterTypes.length == noOfParameters) {
                 
@@ -355,7 +366,7 @@ public final class MethodUtils {
     }
     
     /**
-     * Transforms a property path to a list of methods for reading a nested proeprty. E.h. "{@code person.address.street}" will 
+     * Transforms a property path to a list of methods for reading a nested property. E.h. "{@code person.address.street}" will 
      * become a list consisting of the methods "{@code getPerson()}", "{@code getAddress()}", and "{@code getStreet()}".
      * 
      * @param root The class at which the property path starts.
@@ -366,7 +377,7 @@ public final class MethodUtils {
     public static List<Method> getPropertyGetterPath(final Class<?> root, final String propertyPath, final Class<?> propertyType) throws NoSuchMethodException {
         final String[] properties = propertyPath.split("\\.");
         
-        final List<Method> getterMethods = new ArrayList<Method>();
+        final List<Method> getterMethods = new ArrayList<>();
         
         Class<?> currentClass = root;
         
@@ -465,13 +476,13 @@ public final class MethodUtils {
      * @param createIntermediate If the intermediate objects on the property path should be automatically created
      *                           when they are not defined. The types need to have a public no-argument constructor.
      */
-    public static Object invokePropertyGetterPath(final Object root, 
-                                                  final List<Method> propertyGetterPath, 
-                                                  final boolean createIntermediate) throws IllegalAccessException, 
-                                                                                           IllegalArgumentException, 
-                                                                                           InvocationTargetException, 
-                                                                                           InstantiationException, 
-                                                                                           NoSuchMethodException {
+    private static Object invokePropertyGetterPath(final Object root, 
+                                                   final List<Method> propertyGetterPath, 
+                                                   final boolean createIntermediate) throws IllegalAccessException, 
+                                                                                            IllegalArgumentException, 
+                                                                                            InvocationTargetException, 
+                                                                                            InstantiationException, 
+                                                                                            NoSuchMethodException {
         Object currentObject = root;
         
         for (int i = 0; i < propertyGetterPath.size(); i++) {
@@ -525,14 +536,14 @@ public final class MethodUtils {
      * @param createIntermediate If the intermediate objects on the property path should be automatically created
      *                           when they are not defined. The types need to have a public no-argument constructor.
      */
-    public static Object invokePropertySetterPath(final Object root, 
-                                                  final List<Method> propertySetterPath, 
-                                                  final Object valueToSet, 
-                                                  final boolean createIntermediate) throws IllegalAccessException, 
-                                                                                           IllegalArgumentException, 
-                                                                                           InvocationTargetException, 
-                                                                                           InstantiationException, 
-                                                                                           NoSuchMethodException {
+    private static Object invokePropertySetterPath(final Object root, 
+                                                   final List<Method> propertySetterPath, 
+                                                   final Object valueToSet, 
+                                                   final boolean createIntermediate) throws IllegalAccessException, 
+                                                                                            IllegalArgumentException, 
+                                                                                            InvocationTargetException, 
+                                                                                            InstantiationException, 
+                                                                                            NoSuchMethodException {
         Object currentObject = root;
         
         for (int i = 0; i < ListUtils.maxIndex(propertySetterPath); i++) {
@@ -542,7 +553,7 @@ public final class MethodUtils {
             
             final Object invocationResult = propertySetterPath.get(i).invoke(currentObject);
             
-            if (invocationResult == null && createIntermediate) {
+            if (invocationResult == null) {
                 if (createIntermediate) {
                     //object is missing on the path to last getter
                     //create intermediate objects
