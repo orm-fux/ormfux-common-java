@@ -69,6 +69,10 @@ public final class ListUtils {
      *         {@code true};  {@code null} when there is none.
      */
     public static <T> T selectLast(final List<T> list, final Predicate<T> predicate) {
+        if (predicate == null) {
+            throw new IllegalArgumentException("The predicate is required.");
+        }
+        
         if (list.isEmpty()) {
             return null;
         } else {
@@ -159,28 +163,34 @@ public final class ListUtils {
     /**
      * Splits a list into a list of sublists with maximum size of chunk size.
      * 
-     * @param <T> type parameter
      * @param list source list
-     * @param chunkSize chunk size
+     * @param chunkSize chunk size. Must be greater than {@code 0}.
      * 
      * @return a list of sublists
      */
     public static <T> List<List<T>> split(final List<T> list, final int chunkSize) {
-        final List<List<T>> subLists = new ArrayList<>();
-        final int totalSize = list.size();
-        int from = 0;
+        if (chunkSize <= 0) {
+            throw new IllegalArgumentException("Chunk size must be greater than 0.");
+        }
         
-        while (true) {
-            final int to = from + chunkSize;
+        final List<List<T>> subLists = new ArrayList<>();
+        
+        if (!list.isEmpty()) {
+            final int totalSize = list.size();
+            int from = 0;
             
-            if (to >= totalSize) {
-                subLists.add(list.subList(from, totalSize));
-                break;
-            } else {
-                subLists.add(list.subList(from, to));
+            while (true) {
+                final int to = from + chunkSize;
+                
+                if (to >= totalSize) {
+                    subLists.add(new ArrayList<>(list.subList(from, totalSize)));
+                    break;
+                } else {
+                    subLists.add(new ArrayList<>(list.subList(from, to)));
+                }
+                
+                from = to;
             }
-            
-            from = to;
         }
         
         return subLists;
