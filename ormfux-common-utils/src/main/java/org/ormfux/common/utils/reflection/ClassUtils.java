@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.ormfux.common.utils.reflection.exception.ElementNotFoundException;
 
 /**
  * Utilities for class analysis.
@@ -43,15 +44,18 @@ public final class ClassUtils {
                                      final List<Class<?>> constructorArgTypes,
                                      final List<Object> constructorArgs) {
         
+        if (constructorArgTypes != null) {
+            if (constructorArgs == null) {
+                throw new IllegalArgumentException("Argument values are required when the argument types are defined.");
+            } else if (constructorArgTypes.size() != constructorArgs.size()) {
+                throw new IllegalArgumentException("Not enough values for the constructor arguments.");
+            }
+        }
+        
         try {
             if (constructorArgTypes != null) {
-                if (constructorArgTypes.size() != constructorArgs.size()) {
-                    throw new IllegalArgumentException("Not enough values for the constructor arguments.");
-                } else {
-                    return objectType.getDeclaredConstructor(constructorArgTypes.toArray(new Class[0]))
-                                     .newInstance(constructorArgs.toArray(new Object[0]));
-                }
-                
+                return objectType.getDeclaredConstructor(constructorArgTypes.toArray(new Class[0]))
+                                 .newInstance(constructorArgs.toArray(new Object[0]));
             } else {
                 return objectType.getDeclaredConstructor().newInstance();
             }
@@ -59,36 +63,53 @@ public final class ClassUtils {
         } catch (final InstantiationException | IllegalAccessException 
                         | IllegalArgumentException | InvocationTargetException
                         | NoSuchMethodException | SecurityException e) {
-            throw new RuntimeException("Error creating new instance of class " + objectType, e);
+            throw new org.ormfux.common.utils.reflection.exception.InstantiationException("Error creating new instance of class " + objectType, e);
         }
     }
     
     /**
-     * Gets the first class type argument which is a super type of the generic declaration.
+     * Gets the first class type argument which matches the generic declaration of the super-class.
+     * <i>Generic interfaces are not supported!</i>
      * 
      * @param genericProviderType The class defining the generic.
      * @param typeVariable The type variable for which to resolve the type.
      * @return The resolved type; {@code null} when not found.
      */
-    //TODO how to identify by name?
     public static <T> Class<?> getTypeForGeneric(final Class<T> genericProviderType, final TypeVariable<?> typeVariable) {
-        final Type[] bounds = typeVariable.getBounds();
-        final Class<?> boundType;
+        final ParameterizedType parameterizedSuperType = ClassUtils.findFirstParameterizedSuperclass(genericProviderType);
         
-        if (bounds[0] instanceof ParameterizedType) {
-            boundType = (Class<?>) ((ParameterizedType) bounds[0]).getRawType();
+        if (parameterizedSuperType.getRawType() instanceof Class) {
+            //try identifying by name
+            final Class<?> superClass = (Class<?>) parameterizedSuperType.getRawType();
+            final TypeVariable<?>[] superTypeParameters = superClass.getTypeParameters();
+            
+            if (superTypeParameters.length > 0) {
+                for (int typeVarIndex = 0; typeVarIndex < superTypeParameters.length; typeVarIndex++) {
+                    if (superTypeParameters[typeVarIndex].getName().equals(typeVariable.getName())) {
+                         //found a match by name!
+                         return (Class<?>) parameterizedSuperType.getActualTypeArguments()[typeVarIndex];
+                    }
+                }
+            }
         } else {
-            boundType = (Class<?>) bounds[0];
-        }
-        
-        final ParameterizedType parameterizedSuperClass = ClassUtils.findFirstParameterizedSuperclass(genericProviderType);
-        final Type[] typeArguments = parameterizedSuperClass.getActualTypeArguments();
-        
-        for (final Type typeArgument : typeArguments) {
-            if (boundType.isAssignableFrom((Class<?>) typeArgument)) {
-                return (Class<?>) typeArgument;
+            //fallback. try identifying by type.
+            final Type[] bounds = typeVariable.getBounds();
+            final Class<?> boundType;
+            
+            if (bounds[0] instanceof ParameterizedType) {
+                boundType = (Class<?>) ((ParameterizedType) bounds[0]).getRawType();
+            } else {
+                boundType = (Class<?>) bounds[0];
             }
             
+            final Type[] typeArguments = parameterizedSuperType.getActualTypeArguments();
+            
+            for (final Type typeArgument : typeArguments) {
+                if (boundType.isAssignableFrom((Class<?>) typeArgument)) {
+                    return (Class<?>) typeArgument;
+                }
+                
+            }
         }
         
         return null;
@@ -123,13 +144,7 @@ public final class ClassUtils {
      * @return class parameter.
      */
     public static Class<?> retrieveDataType(final Class<?> clazz) {
-        final ParameterizedType parameterizedSuperclass = findFirstParameterizedSuperclass(clazz);
-        
-        if (parameterizedSuperclass == null) {
-            throw new IllegalArgumentException("Incompatible class. Class must be (directly or indirectly) inherited from one generic class.");
-        } else {
-            return (Class<?>) parameterizedSuperclass.getActualTypeArguments()[0];
-        }
+        return retrieveDataType(clazz, 0);
     }
     
     /**
@@ -140,7 +155,27 @@ public final class ClassUtils {
      * @return class parameter.
      */
     public static Class<?> retrieveDataType(final Class<?> clazz, final int pos) {
-        return (Class<?>) ((ParameterizedType) (clazz.getGenericSuperclass())).getActualTypeArguments()[pos];
+        final ParameterizedType parameterizedSuperclass = findFirstParameterizedSuperclass(clazz);
+        
+        if (parameterizedSuperclass == null) {
+            throw new ElementNotFoundException("Incompatible class. Class must be (directly or indirectly) inherited from one generic class.");
+        } else {
+            final Type[] typeArguments = parameterizedSuperclass.getActualTypeArguments();
+            
+            if (typeArguments.length <= pos) {
+                throw new ElementNotFoundException("To less generic declarations.");
+            } else {
+                final Type typeArgument = typeArguments[pos];
+                
+                if (typeArgument instanceof Class) {
+                    return (Class<?>) typeArgument;
+                } else {
+                    throw new ElementNotFoundException("DataType is not a Class.");
+                }
+                
+            }
+            
+        }
     }
     
     /**
@@ -262,7 +297,7 @@ public final class ClassUtils {
      * @return a list of fields
      */
     public static <T> List<Field> getAllFields(final Class<T> objectClass, final Class<? super T> stopClass) {
-        final List<Field> fieldList = new ArrayList<Field>();
+        final List<Field> fieldList = new ArrayList<>();
         collectAllFields(objectClass, stopClass, fieldList);
         
         return fieldList;
