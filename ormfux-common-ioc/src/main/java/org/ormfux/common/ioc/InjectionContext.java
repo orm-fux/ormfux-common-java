@@ -53,9 +53,9 @@ public final class InjectionContext {
     
     /**
      * Creates a new instance of the given type or gets the matching instance from this context's cache. 
-     * The type has to be annotated with {@link Bean}. Properties of the type, annotated with {@link Inject},
-     * get a value either from this context's cache or as a new instance that is then also placed in 
-     * this context's cache. 
+     * The type has to be annotated with {@link Bean} or must be a manually registered one. Properties of 
+     * the type, annotated with {@link Inject}, get a value either from this context's cache or as a new 
+     * instance that is then also placed in this context's cache. 
      * 
      * @param beanType The bean type.
      * @return The instance.
@@ -68,6 +68,8 @@ public final class InjectionContext {
             return (T) bean;
             
         } else {
+            //FIXME We get context pollution with incompletely initialized beans
+            //when we run in an exception. We need to use a temporary bean cache!
             if (isAnnotatedBeanType(beanType)) {
                 return addAnnotatedBean(beanType);
             } else if (isManualBeanType(beanType)) {
