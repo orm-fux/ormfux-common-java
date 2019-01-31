@@ -21,7 +21,7 @@ public class NowTest {
         calendar.set(Calendar.SECOND, calendar.get(Calendar.SECOND) - 2);
         
         //less than 2 second difference
-        assertTrue(now.getTime() - calendar.getTimeInMillis() < 2000);
+        assertTrue(calendar.getTimeInMillis() - now.getTime() < 2000);
     }
     
 }

@@ -27,7 +27,15 @@ configure(subprojects) {
 	}
 	
 	processTestResources.dependsOn copyTestResources
-		
+	
+	/* test logging */
+	test {
+	    testLogging {
+	        exceptionFormat = 'full'
+	    }
+	}
+	
+			
 	/* repos */
 	repositories {
 		mavenCentral()

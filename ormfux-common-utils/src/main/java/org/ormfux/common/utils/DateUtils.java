@@ -210,7 +210,7 @@ public final class DateUtils {
      * @return current time.
      */
     public static Date now() {
-        return getCalendar(null, null).getTime();
+        return Calendar.getInstance().getTime();
     }
     
     /**
