@@ -12,6 +12,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.Inject;
+import org.ormfux.common.ioc.exception.BeanLookupException;
 
 public class ManualBeansTest extends AbstractInjectionContextTest {
     
@@ -105,7 +106,7 @@ public class ManualBeansTest extends AbstractInjectionContextTest {
         assertTrue(beansCache.get(ManualBean.class) == bean.bean2);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = BeanLookupException.class)
     public void testManualBeanNotDefined() {
         InjectionContext.getBean(Bean1.class);
     }

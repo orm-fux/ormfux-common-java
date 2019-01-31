@@ -15,8 +15,11 @@ import java.util.Objects;
 import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.Init;
 import org.ormfux.common.ioc.annotations.Inject;
+import org.ormfux.common.ioc.exception.BeanInstantiationException;
+import org.ormfux.common.ioc.exception.BeanLookupException;
 import org.ormfux.common.utils.ListUtils;
 import org.ormfux.common.utils.reflection.ClassUtils;
+import org.ormfux.common.utils.reflection.exception.InstantiationException;
 
 /**
  * Simple inversion of control implementation: We don't want to constantly create new Objects
@@ -28,9 +31,9 @@ import org.ormfux.common.utils.reflection.ClassUtils;
  * with {@link Inject} are automatically set. The property values are also kept in this 
  * context's cache.
  * <p/>
- * It is also possible to create non-singleton beans. They are not stored ina context. Each time 
- * such a bean has to be injected a new instance is created. So beware of circular references 
- * of non-singletons!
+ * It is also possible to create non-singleton beans. Non-singletons are not stored in the context. 
+ * Each time such a bean has to be injected a new instance is created. So beware of circular 
+ * references of non-singletons!
  * <p/>
  * <i>Why is this implemented?</i>
  * <ul>
@@ -68,18 +71,98 @@ public final class InjectionContext {
             return (T) bean;
             
         } else {
-            //FIXME We get context pollution with incompletely initialized beans
-            //when we run in an exception. We need to use a temporary bean cache!
-            if (isAnnotatedBeanType(beanType)) {
-                return addAnnotatedBean(beanType);
-            } else if (isManualBeanType(beanType)) {
-                return addManualBean(beanType);
-                
-            } else {
-                throw new IllegalArgumentException("Not a bean type: " + beanType);
-            }
+            validateBeanDefinition(beanType);
+            
+            final BeanCreationCache<T> newBeanContainer = getBean(beanType, new BeanCreationCache<>());
+            BEANS.putAll(newBeanContainer.getNewBeans());
+            
+            return newBeanContainer.getBean();
         }
         
+    }
+    
+    /**
+     * Returns a an existing bean from the caches or creates a new instance. A new instance is only created 
+     * when the requested bean is not found in one of the caches. 
+     * 
+     * @param beanType The type of the bean to create.
+     * @param newInstancesCache The cache with all newly created bean instances.
+     * @return The bean instance along with the other newly created beans (includes the ones from the cache 
+     *         provided to the method).
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> BeanCreationCache<T> getBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
+        if (BEANS.containsKey(beanType) || newInstancesCache.getCachedBean(beanType) != null) {
+            final BeanCreationCache<T> existingInstanceContainer = new BeanCreationCache<>(newInstancesCache);
+            
+            if (BEANS.containsKey(beanType)) {
+                existingInstanceContainer.setBean((T) BEANS.get(beanType));
+            } else {
+                existingInstanceContainer.setBean((T) newInstancesCache.getCachedBean(beanType));
+            }
+            
+            return existingInstanceContainer;
+            
+        } else if (isAnnotatedBeanType(beanType)) {
+            return createAnnotatedBean(beanType, newInstancesCache);
+        } else if (isManualBeanType(beanType)) {
+            return createManualBean(beanType, newInstancesCache);
+            
+        } else {
+            //We should never get here!
+            throw new BeanLookupException("Not a bean type: " + beanType);
+        }
+        
+    }
+    
+    /**
+     * Validates that the class actually represents a bean. Includes validation of the values to
+     * inject into new instances.
+     * 
+     * @param beanType The bean type to validate.
+     * 
+     * @throws BeanLookupException When the class or one of its (indirect) properties to inject
+     *                             does not represent a valid bean definition. 
+     */
+    private static void validateBeanDefinition(final Class<?> beanType) throws BeanLookupException {
+        validateBeanDefinition(beanType, new ArrayList<>());
+    }
+    
+    /**
+     * Validates that the class actually represents a bean. Includes validation of the values to
+     * inject into new instances.
+     * 
+     * @param beanType The bean type to validate.
+     * @param discoveredNewBeans The, during the validation process, already found types of beans,
+     *                           for which a new instance needs to be created.
+     * 
+     * @throws BeanLookupException When the class or one of its (indirect) properties to inject
+     *                             does not represent a valid bean definition. 
+     */
+    private static void validateBeanDefinition(final Class<?> beanType, final List<Class<?>> discoveredNewBeans) throws BeanLookupException {
+        if (!BEANS.containsKey(beanType) && !discoveredNewBeans.contains(beanType)) {
+            if (isAnnotatedBeanType(beanType) || isManualBeanType(beanType)) {
+                discoveredNewBeans.add(beanType);
+                
+                Class<?> currentType = beanType;
+                
+                while (currentType != null) {
+                    for (final Field beanField : currentType.getDeclaredFields()) {
+                        final Class<?> fieldBeanType = getTypeToInject(beanType, beanField);
+                        
+                        if (fieldBeanType != null) {
+                            validateBeanDefinition(fieldBeanType, discoveredNewBeans);
+                        }
+                    }
+                    
+                    currentType = currentType.getSuperclass();
+                }
+                
+            } else {
+                throw new BeanLookupException("Not a bean type: " + beanType);
+            }
+            
+        }
     }
     
     /**
@@ -87,13 +170,13 @@ public final class InjectionContext {
      * too. This may result in further creation and placement of instances in this cache.
      * 
      * @param beanType The type to instantiate.
+     * @param newInstancesCache The cache with all newly created bean instances.
      * @return The created instance.
      */
     @SuppressWarnings("unchecked")
-    private static <T> T addManualBean(final Class<T> beanType) {
+    private static <T> BeanCreationCache<T> createManualBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
         final BeanDescriptor beanDescriptor = getBeanDescriptor(beanType);
-        
-        return addBean((Class<T>) beanDescriptor.getBeanType(), beanDescriptor.isSingleton());
+        return createBean((Class<T>) beanDescriptor.getBeanType(), beanDescriptor.isSingleton(), newInstancesCache);
     }
     
     /**
@@ -103,10 +186,11 @@ public final class InjectionContext {
      * The type must be annotated with {@link Bean}.
      * 
      * @param beanType The type to instantiate.
+     * @param newInstancesCache The cache with all newly created bean instances.
      * @return The created instance.
      */
-    private static <T> T addAnnotatedBean(final Class<T> beanType) {
-        return addBean(beanType, beanType.getAnnotation(Bean.class).singleton());
+    private static <T> BeanCreationCache<T> createAnnotatedBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
+        return createBean(beanType, beanType.getAnnotation(Bean.class).singleton(), newInstancesCache);
     }
     
     /**
@@ -117,27 +201,34 @@ public final class InjectionContext {
      * 
      * @param beanType The type to instantiate.
      * @param singleton If the bean is a singleton.
+     * @param newInstancesCache The cache with all newly created bean instances.
      * @return The created instance.
      */
-    private static <T> T addBean(final Class<T> beanType, final boolean singleton) {
+    private static <T> BeanCreationCache<T> createBean(final Class<T> beanType, 
+                                                       final boolean singleton, 
+                                                       final BeanCreationCache<?> newInstancesCache) throws BeanInstantiationException, 
+                                                                                                            BeanLookupException {
         try {
-            final T bean = ClassUtils.createObject(beanType);
+            final BeanCreationCache<T> newBeanContainer = new BeanCreationCache<>(newInstancesCache);
             
-            //For circular references put this in the content immediately.
+            final T bean = ClassUtils.createObject(beanType);
+            newBeanContainer.setBean(bean);
+            
+            //For circular references put this in the context immediately.
             if (singleton) {
-                BEANS.put(beanType, bean);
+                newBeanContainer.putBeanInCache(beanType, bean);
             }
             
             //Inject values into bean.
-            injectValues(beanType, bean);
+            injectValues(beanType, bean, newBeanContainer);
             
             //call initialization methods (super-classes first)
             initializeBean(beanType, bean);
             
-            return bean;
+            return newBeanContainer;
             
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Cannot create new bean of type " + beanType, e);
+        } catch (InstantiationException e) {
+            throw new BeanInstantiationException("Cannot create new bean instance.", e);
         }
     }
     
@@ -146,40 +237,39 @@ public final class InjectionContext {
      * 
      * @param beanType The type of the bean.
      * @param bean The bean in which to inject.
+     * @param newInstancesCache The cache with all newly created bean instances. Instances created in this method 
+     *                          are added to this cache.
      * 
      * @throws IllegalAccessException
      */
-    private static <T> void injectValues(final Class<T> beanType, final T bean) throws IllegalAccessException {
+    private static <T> void injectValues(final Class<T> beanType, 
+                                         final T bean, 
+                                         final BeanCreationCache<?> newInstancesCache) throws BeanInstantiationException {
         Class<?> currentType = beanType;
         
         while (currentType != null) {
             for (final Field beanField : currentType.getDeclaredFields()) {
+                final Class<?> fieldBeanType = getTypeToInject(beanType, beanField);
                 
-                if (beanField.isAnnotationPresent(Inject.class)) {
-                    //we need to do some extra work for generic fields.
-                    final Type genericType = beanField.getGenericType();
-                    final Class<?> fieldType;
+                if (fieldBeanType != null) {
+                    final BeanCreationCache<?> fieldValueContainer = getBean(fieldBeanType, newInstancesCache);
+                    final Object fieldValue = fieldValueContainer.getBean();
+                    newInstancesCache.getNewBeans().putAll(fieldValueContainer.getNewBeans());
                     
-                    if (genericType instanceof TypeVariable) {
-                        final TypeVariable<?> typeVariable = (TypeVariable<?>) genericType;
-                        fieldType = ClassUtils.getTypeForGeneric(beanType, typeVariable);
+                    if (fieldValue != null) {
+                        if (!beanField.canAccess(bean)) {
+                            beanField.setAccessible(true);
+                        }
+                        
+                        try {
+                            beanField.set(bean, fieldValue);
+                        } catch (final IllegalAccessException e) {
+                            throw new BeanInstantiationException("Cannot set value to " + beanType.getName() + "." + beanField.getName());
+                        }
                         
                     } else {
-                        fieldType = beanField.getType();
+                        throw new BeanLookupException("There is no bean to inject into " + beanType.getName() + "." + beanField.getName());
                     }
-                    
-                     final Object fieldValue = getBean(fieldType);
-                     
-                     if (fieldValue != null) {
-                         if (!beanField.canAccess(bean)) {
-                             beanField.setAccessible(true);
-                         }
-                         
-                         beanField.set(bean, fieldValue);
-                         
-                     } else {
-                         throw new RuntimeException("There is no bean to inject into " + beanType.getName() + "." + beanField.getName());
-                     }
                 }
             }
             
@@ -187,12 +277,35 @@ public final class InjectionContext {
         }
     }
 
+    /**
+     * Gets the type of the bean to inject into the property represented by the field.
+     * 
+     * @param beanType The bean type that owns the field.
+     * @param field The field.
+     * @return The type for which to create a new field value; {@code null} when not an injectable field.
+     */
+    private static Class<?> getTypeToInject(final Class<?> beanType, final Field field) {
+        if (field.isAnnotationPresent(Inject.class)) {
+            //we need to do some extra work for generic fields.
+            final Type genericType = field.getGenericType();
+            
+            if (genericType instanceof TypeVariable) {
+                return ClassUtils.getTypeForGeneric(beanType, (TypeVariable<?>) genericType);
+            } else {
+                return field.getType();
+            }
+            
+        } else {
+            return null;
+        }
+        
+    }
     
     /**
      * Calls the methods of the bean, which have the {@code @Init} annotation. Invokes top-down in the inheritance 
      * hierarchy - i.e. super-classes first. The methods must be public, non-static, and have no parameters.
      */
-    private static <T> void initializeBean(final Class<T> beanType, final T bean) throws IllegalAccessException {
+    private static <T> void initializeBean(final Class<T> beanType, final T bean) throws BeanInstantiationException {
         List<Class<?>> superClasses = new ArrayList<>();
         Class<?> superClass = beanType;
         
@@ -211,8 +324,8 @@ public final class InjectionContext {
                     }
                 }
             }
-        } catch (final IllegalArgumentException | InvocationTargetException e) {
-            throw new RuntimeException("Error calling initialization method.", e);
+        } catch (final IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
+            throw new BeanInstantiationException("Error calling initialization method.", e);
         }
     }
     
