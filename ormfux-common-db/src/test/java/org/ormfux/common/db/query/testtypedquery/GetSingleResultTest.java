@@ -17,7 +17,7 @@ public class GetSingleResultTest extends AbstractTypedQueryTest {
     }
 
     @Test
-    public void testGetSingleResultWithoutLimitation() {
+    public void testWithoutLimitation() {
         TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class);
         MockEntity mock = typedQuery.getSingleResult();
         
@@ -26,7 +26,7 @@ public class GetSingleResultTest extends AbstractTypedQueryTest {
     }
     
     @Test(expected = NonUniqueResultException.class)
-    public void testMoreThanOneSingleResult() {
+    public void testMoreThanOneResult() {
         queryManager.createQuery("insert into mock (id) values ('id2')").executeUpdate();
         
         TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class);
@@ -34,7 +34,7 @@ public class GetSingleResultTest extends AbstractTypedQueryTest {
     }
     
     @Test
-    public void testGetSingleResultWithLimitation() {
+    public void testWithLimitation() {
         queryManager.createQuery("insert into mock (id) values ('id2')").executeUpdate();
         
         TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class, "where mock.id = :id ");
