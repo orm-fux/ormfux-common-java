@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.StringUtils;
 import org.ormfux.common.db.exception.DuplicateParamException;
 import org.ormfux.common.db.exception.SQLException;
 import org.ormfux.common.db.query.connection.DbConnectionProvider;
@@ -53,7 +54,9 @@ public abstract class AbstractQuery {
      * @throws SQLException 
      */
     public final void addParameter(final String paramName, final Object value) throws SQLException {
-        if (queryParams.containsKey(paramName)) {
+        if (StringUtils.isBlank(paramName)) {
+            throw new IllegalArgumentException("The parameter name is required.");
+        } else if (queryParams.containsKey(paramName)) {
             throw new DuplicateParamException("A parameter with this name is already defined: " + paramName);
         } else {
             queryParams.put(paramName, value);
