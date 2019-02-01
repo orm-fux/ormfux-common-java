@@ -345,6 +345,10 @@ public class TypedQuery<T> extends AbstractQuery {
      * @throws SQLException 
      */
     public int delete(final T entity) throws SQLException {
+        if (entity == null) {
+            throw new IllegalArgumentException("The entity is required.");
+        }
+        
         //Creating a batch update query, which removes collection content first.
         //This way, when we fail at one part, we commit nothing.
         final StringBuilder deleteQuery = new StringBuilder();

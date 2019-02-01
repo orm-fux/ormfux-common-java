@@ -4,12 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.math.BigDecimal;
-
 import org.junit.Test;
-import org.ormfux.common.db.mock.MockEntity;
+import org.ormfux.common.db.exception.NonMatchedParamException;
+import org.ormfux.common.db.exception.NonUniqueResultException;
+import org.ormfux.common.db.exception.SQLException;
 import org.ormfux.common.db.query.TypedQuery;
-import org.ormfux.common.utils.DateUtils;
 
 public class GetSingleResultTest extends AbstractTypedQueryTest {
     
@@ -24,48 +23,27 @@ public class GetSingleResultTest extends AbstractTypedQueryTest {
         
         assertNotNull(mock);
         assertEquals("id", mock.getId());
-        assertEquals(DateUtils.getDate(2018, 02, 11), mock.getCreationDate());
-        assertEquals(1L, mock.getVersion());
-        assertEquals(new BigDecimal("19.50"), mock.getGross());
+    }
+    
+    @Test(expected = NonUniqueResultException.class)
+    public void testMoreThanOneSingleResult() {
+        queryManager.createQuery("insert into mock (id) values ('id2')").executeUpdate();
         
-        assertNotNull(mock.getMockList1());
-        assertEquals(1, mock.getMockList1().size());
-        assertEquals("id2", mock.getMockList1().get(0).getId());
-        assertEquals(0L, mock.getMockList1().get(0).getVersion());
-        
-        assertNotNull(mock.getMockList2());
-        assertEquals(1, mock.getMockList2().size());
-        assertEquals("id3", mock.getMockList2().get(0).getId());
-        assertEquals(0L, mock.getMockList2().get(0).getVersion());
-        
+        TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class);
+        typedQuery.getSingleResult();
     }
     
     @Test
     public void testGetSingleResultWithLimitation() {
-        TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class, 
-                                                                     "where mock.id = :id and mock.version = :version and mock.creationDate = :creationDate ");
+        queryManager.createQuery("insert into mock (id) values ('id2')").executeUpdate();
+        
+        TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class, "where mock.id = :id ");
         typedQuery.addParameter("id", "id");
-        typedQuery.addParameter("version", 1L);
-        typedQuery.addParameter("creationDate", DateUtils.getDate(2018, 2, 11));
         
         MockEntity mock = typedQuery.getSingleResult();
         
         assertNotNull(mock);
         assertEquals("id", mock.getId());
-        assertEquals(DateUtils.getDate(2018, 02, 11), mock.getCreationDate());
-        assertEquals(1L, mock.getVersion());
-        assertEquals(new BigDecimal("19.50"), mock.getGross());
-        
-        assertNotNull(mock.getMockList1());
-        assertEquals(1, mock.getMockList1().size());
-        assertEquals("id2", mock.getMockList1().get(0).getId());
-        assertEquals(0L, mock.getMockList1().get(0).getVersion());
-        
-        assertNotNull(mock.getMockList2());
-        assertEquals(1, mock.getMockList2().size());
-        assertEquals("id3", mock.getMockList2().get(0).getId());
-        assertEquals(0L, mock.getMockList2().get(0).getVersion());
-        
     }
     
     @Test
@@ -74,6 +52,22 @@ public class GetSingleResultTest extends AbstractTypedQueryTest {
         
         MockEntity mock = typedQuery.getSingleResult();
         assertNull(mock);
+    }
+    
+    @Test(expected = SQLException.class)
+    public void testParamValueMissing() {
+        TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class, "where mock.id = :id ");
+        
+        typedQuery.getSingleResult();
+    }
+    
+    @Test(expected = NonMatchedParamException.class)
+    public void testTooManyParams() {
+        TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class, "where mock.id = :id ");
+        typedQuery.addParameter("id", "id");
+        typedQuery.addParameter("id2", "id");
+        
+        typedQuery.getSingleResult();
     }
     
 }
