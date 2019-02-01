@@ -1,4 +1,4 @@
-package org.ormfux.common.db.query;
+package org.ormfux.common.db.mock;
 
 import org.ormfux.common.db.annotation.Column;
 import org.ormfux.common.db.annotation.Entity;

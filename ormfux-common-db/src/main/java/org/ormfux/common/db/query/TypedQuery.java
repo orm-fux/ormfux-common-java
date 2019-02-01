@@ -60,6 +60,10 @@ public class TypedQuery<T> extends AbstractQuery {
     protected TypedQuery(final DbConnectionProvider dbConnection, final String querySuffix, final Class<T> resultType, final String entityAlias) {
         super(dbConnection, querySuffix);
         
+        if (resultType == null) {
+            throw new IllegalArgumentException("The entity type is required.");
+        }
+        
         if (!resultType.isAnnotationPresent(Entity.class)) {
             throw new IllegalArgumentException("The result type must have an @Entity annotation.");
         }

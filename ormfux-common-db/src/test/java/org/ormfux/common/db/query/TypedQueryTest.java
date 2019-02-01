@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNull;
 
 import java.math.BigDecimal;
 
+import org.ormfux.common.db.mock.MockEntity;
+import org.ormfux.common.db.mock.MockEntity2;
 import org.ormfux.common.db.query.Query;
 import org.ormfux.common.db.query.QueryManager;
 import org.ormfux.common.db.query.TypedQuery;

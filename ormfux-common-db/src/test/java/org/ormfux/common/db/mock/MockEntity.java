@@ -1,4 +1,4 @@
-package org.ormfux.common.db.query;
+package org.ormfux.common.db.mock;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
