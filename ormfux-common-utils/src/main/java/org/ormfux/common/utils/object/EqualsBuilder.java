@@ -1,6 +1,5 @@
 package org.ormfux.common.utils.object;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.ormfux.common.utils.reflection.ClassUtils;
@@ -55,7 +54,7 @@ public class EqualsBuilder<T> {
      */
     @SuppressWarnings("unchecked")
     public EqualsBuilder(final T value1, final Object value2, final boolean initialEquals) {
-        Objects.requireNonNull(value1);
+        java.util.Objects.requireNonNull(value1);
         
         this.value1 = value1;
         
@@ -63,7 +62,7 @@ public class EqualsBuilder<T> {
             this.value2 = null;
             this.state = EqualsState.NEVER_EQUAL;
             
-        } else if (value1 == value2) {
+        } else if (Objects.isSame(value1, value2)) {
             this.value2 = (T) value2;
             this.state = EqualsState.ALWAYS_EQUAL;
             
@@ -96,7 +95,7 @@ public class EqualsBuilder<T> {
             final Object propertyValue1 = propertySelector.apply(value1);
             final Object propertyValue2 = propertySelector.apply(value2);
             
-            if (propertyValue1 != propertyValue2 && !Objects.equals(propertyValue1, propertyValue2)) {
+            if (!Objects.isSame(propertyValue1, propertyValue2) && !Objects.equals(propertyValue1, propertyValue2)) {
                 state = EqualsState.NOT_EQUAL;
             }
         }

@@ -7,6 +7,7 @@ import java.util.Date;
 
 import org.junit.Test;
 import org.ormfux.common.utils.DateUtils;
+import org.ormfux.common.utils.object.Objects;
 
 public class OnceNowGeneratorTest {
     
@@ -22,7 +23,7 @@ public class OnceNowGeneratorTest {
         Date date = DateUtils.getDate(2000, 1, 1);
         Date generatedValue = new OnceDateNowGenerator().generate(date);
         assertNotNull(generatedValue);
-        assertTrue(date == generatedValue);
+        assertTrue(Objects.isSame(date, generatedValue));
         
     }
     

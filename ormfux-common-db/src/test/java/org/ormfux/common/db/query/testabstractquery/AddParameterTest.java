@@ -9,6 +9,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.ormfux.common.db.exception.DuplicateParamException;
 import org.ormfux.common.db.query.AbstractQuery;
+import org.ormfux.common.utils.object.Objects;
 
 public class AddParameterTest extends AbstractAbstractQueryTest {
     
@@ -20,16 +21,16 @@ public class AddParameterTest extends AbstractAbstractQueryTest {
         
         query.addParameter("param1", query);
         assertEquals(1, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         
         query.addParameter("paramName", "second param");
         assertEquals(2, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         assertEquals("second param", params.get("paramName"));
         
         query.addParameter("nullParam", null);
         assertEquals(3, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         assertEquals("second param", params.get("paramName"));
         assertTrue(params.containsKey("nullParam"));
         assertNull(params.get("nullParam"));
@@ -43,7 +44,7 @@ public class AddParameterTest extends AbstractAbstractQueryTest {
         
         query.addParameter("param1", query);
         assertEquals(1, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         
         query.addParameter("param1", "duplicate param name");
     }

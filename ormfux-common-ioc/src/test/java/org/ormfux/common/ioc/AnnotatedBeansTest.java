@@ -10,6 +10,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.Inject;
+import org.ormfux.common.utils.object.Objects;
 
 public class AnnotatedBeansTest extends AbstractInjectionContextTest {
     
@@ -21,26 +22,26 @@ public class AnnotatedBeansTest extends AbstractInjectionContextTest {
         assertNull(bean.nonInjected);
         
         assertNotNull(bean.selfReference);
-        assertTrue(bean == bean.selfReference); //same object
+        assertTrue(Objects.isSame(bean, bean.selfReference)); //same object
         
         assertNotNull(bean.bean2);
         assertNotNull(bean.nonSingleton);
         
-        assertTrue(bean == bean.bean2.circularReference); //same object
+        assertTrue(Objects.isSame(bean, bean.bean2.circularReference)); //same object
         assertNotNull(bean.bean2.nonSingleton);
         
         assertTrue(bean.nonSingleton != bean.bean2.nonSingleton); //not the same object
         
         assertNotNull(bean.nonSingleton.bean1);
-        assertTrue(bean == bean.nonSingleton.bean1);
+        assertTrue(Objects.isSame(bean, bean.nonSingleton.bean1));
         
         assertNotNull(bean.bean2.nonSingleton.bean1);
-        assertTrue(bean == bean.bean2.nonSingleton.bean1);
+        assertTrue(Objects.isSame(bean, bean.bean2.nonSingleton.bean1));
         
         Map<Class<?>, Object> beansCache = getBeansCache();
         assertEquals(2, beansCache.size());
-        assertTrue(beansCache.get(Bean1.class) == bean);
-        assertTrue(beansCache.get(Bean2.class) == bean.bean2);
+        assertTrue(Objects.isSame(beansCache.get(Bean1.class), bean));
+        assertTrue(Objects.isSame(beansCache.get(Bean2.class), bean.bean2));
     }
     
     @Bean

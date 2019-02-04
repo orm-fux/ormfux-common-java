@@ -10,6 +10,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.ormfux.common.db.exception.DuplicateParamException;
 import org.ormfux.common.db.query.AbstractQuery;
+import org.ormfux.common.utils.object.Objects;
 
 public class AddParametersTest extends AbstractAbstractQueryTest {
     
@@ -24,7 +25,7 @@ public class AddParametersTest extends AbstractAbstractQueryTest {
         
         query.addParameters(addedParams);
         assertEquals(1, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         
         addedParams = new HashMap<>();
         addedParams.put("paramName", "second param");
@@ -32,7 +33,7 @@ public class AddParametersTest extends AbstractAbstractQueryTest {
         
         query.addParameters(addedParams);
         assertEquals(3, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         assertEquals("second param", params.get("paramName"));
         assertTrue(params.containsKey("nullParam"));
         assertNull(params.get("nullParam"));
@@ -65,7 +66,7 @@ public class AddParametersTest extends AbstractAbstractQueryTest {
         
         query.addParameter("param1", query);
         assertEquals(1, params.size());
-        assertTrue(query == params.get("param1"));
+        assertTrue(Objects.isSame(query, params.get("param1")));
         
         Map<String, Object> addedParams = new HashMap<>();
         addedParams.put("param1", "duplicate param name");

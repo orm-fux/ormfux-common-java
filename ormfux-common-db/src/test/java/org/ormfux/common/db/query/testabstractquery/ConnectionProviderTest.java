@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 
 import org.junit.Test;
 import org.ormfux.common.db.query.AbstractQuery;
+import org.ormfux.common.utils.object.Objects;
 
 public class ConnectionProviderTest extends AbstractAbstractQueryTest {
     
@@ -23,7 +24,7 @@ public class ConnectionProviderTest extends AbstractAbstractQueryTest {
         Field connectionProviderField = AbstractQuery.class.getDeclaredField("dbConnectionProvider");
         connectionProviderField.setAccessible(true);
         
-        assertTrue(connectionProvider == connectionProviderField.get(query));
+        assertTrue(Objects.isSame(connectionProvider, connectionProviderField.get(query)));
     }
     
 }

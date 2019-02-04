@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.Inject;
 import org.ormfux.common.ioc.exception.BeanLookupException;
+import org.ormfux.common.utils.object.Objects;
 
 public class AntiContextPollutionTest extends AbstractInjectionContextTest {
     
@@ -30,7 +31,7 @@ public class AntiContextPollutionTest extends AbstractInjectionContextTest {
             fail("Expecting BeanLookupException.");
         } catch (BeanLookupException e) {
             assertEquals(1, getBeansCache().size());
-            assertTrue(bean == getBeansCache().get(Bean2.class));
+            assertTrue(Objects.isSame(bean, getBeansCache().get(Bean2.class)));
         }
     }
     

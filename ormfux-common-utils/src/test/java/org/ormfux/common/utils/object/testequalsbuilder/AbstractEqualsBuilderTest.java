@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.lang.reflect.Field;
 
 import org.ormfux.common.utils.object.EqualsBuilder;
+import org.ormfux.common.utils.object.Objects;
 
 public abstract class AbstractEqualsBuilderTest {
     
@@ -56,7 +57,7 @@ public abstract class AbstractEqualsBuilderTest {
         public boolean equals(final Object obj) {
             if (obj == null) {
                 return false;
-            } else if (this == obj) {
+            } else if (Objects.isSame(this, obj)) {
                 return true;
             } else if (!this.getClass().isAssignableFrom(obj.getClass())) {
                 return false;

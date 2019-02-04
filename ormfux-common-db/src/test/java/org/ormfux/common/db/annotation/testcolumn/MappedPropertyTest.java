@@ -21,6 +21,7 @@ import org.ormfux.common.db.annotation.Version;
 import org.ormfux.common.db.generators.RandomIdGenerator;
 import org.ormfux.common.db.query.TypedQuery;
 import org.ormfux.common.utils.DateUtils;
+import org.ormfux.common.utils.object.Objects;
 
 public class MappedPropertyTest extends AbstractAnnotationTest {
     
@@ -88,7 +89,7 @@ public class MappedPropertyTest extends AbstractAnnotationTest {
         assertEquals("string value", loadedEntity2.getStringProp());
         assertEquals(TimeUnit.HOURS, loadedEntity2.getEnumProp());
         assertEquals(loadedEntity, loadedEntity2.getEntityProp());
-        assertFalse(loadedEntity == loadedEntity2.getEntityProp());
+        assertFalse(Objects.isSame(loadedEntity, loadedEntity2.getEntityProp()));
         assertEquals(DateUtils.getDate(2000, 1, 1), loadedEntity2.getDateProp());
         assertEquals(BigDecimal.TEN, loadedEntity2.getNumberProp());
     }
@@ -167,8 +168,8 @@ public class MappedPropertyTest extends AbstractAnnotationTest {
         assertEquals("string value", loadedEntity2.getStringProp());
         assertEquals(TimeUnit.HOURS, loadedEntity2.getEnumProp());
         assertEquals(loadedEntity, loadedEntity2.getEntityProp());
-        assertFalse(loadedEntity == loadedEntity2.getEntityProp());
-        assertTrue(loadedEntity2 == loadedEntity2.getEntityProp());
+        assertFalse(Objects.isSame(loadedEntity, loadedEntity2.getEntityProp()));
+        assertTrue(Objects.isSame(loadedEntity2, loadedEntity2.getEntityProp()));
         assertEquals(DateUtils.getDate(2000, 1, 1), loadedEntity2.getDateProp());
         assertEquals(BigDecimal.TEN, loadedEntity2.getNumberProp());
     }
