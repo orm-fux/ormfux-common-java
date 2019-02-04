@@ -323,4 +323,27 @@ public final class ClassUtils {
             }
         }
     }
+    
+    /**
+     * The Class of the given object. For enumerations it is the enumeration type.
+     * 
+     * @param obj an object
+     * @return the class of the object.
+     */
+    public static Class<?> getClass(final Object obj) {
+        final Class<? extends Object> objClass = obj.getClass();
+        
+        if (Enum.class.isAssignableFrom(objClass)) {
+            //complex enums produce sub-classes for their values.
+            final Class<?> superClass = objClass.getSuperclass();
+            
+            if (Enum.class.equals(superClass)) {
+                return objClass;
+            } else {
+                return superClass;
+            }
+        } else {
+            return objClass;
+        }
+    }
 }
