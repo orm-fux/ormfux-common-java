@@ -1,5 +1,8 @@
 package org.ormfux.common.utils.reflection;
 
+import static org.ormfux.common.utils.NullableUtils.isNull;
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -12,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.ormfux.common.utils.NullableUtils;
 import org.ormfux.common.utils.reflection.exception.ElementNotFoundException;
 
 /**
@@ -20,6 +24,7 @@ import org.ormfux.common.utils.reflection.exception.ElementNotFoundException;
 public final class ClassUtils {
     
     private ClassUtils() {
+        throw new IllegalAccessError(ClassUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -44,8 +49,8 @@ public final class ClassUtils {
                                      final List<Class<?>> constructorArgTypes,
                                      final List<Object> constructorArgs) {
         
-        if (constructorArgTypes != null) {
-            if (constructorArgs == null) {
+        if (nonNull(constructorArgTypes)) {
+            if (isNull(constructorArgs)) {
                 throw new IllegalArgumentException("Argument values are required when the argument types are defined.");
             } else if (constructorArgTypes.size() != constructorArgs.size()) {
                 throw new IllegalArgumentException("Not enough values for the constructor arguments.");
@@ -53,7 +58,7 @@ public final class ClassUtils {
         }
         
         try {
-            if (constructorArgTypes != null) {
+            if (nonNull(constructorArgTypes)) {
                 return objectType.getDeclaredConstructor(constructorArgTypes.toArray(new Class[0]))
                                  .newInstance(constructorArgs.toArray(new Object[0]));
             } else {
@@ -157,7 +162,7 @@ public final class ClassUtils {
     public static Class<?> retrieveDataType(final Class<?> clazz, final int pos) {
         final ParameterizedType parameterizedSuperclass = findFirstParameterizedSuperclass(clazz);
         
-        if (parameterizedSuperclass == null) {
+        if (isNull(parameterizedSuperclass)) {
             throw new ElementNotFoundException("Incompatible class. Class must be (directly or indirectly) inherited from one generic class.");
         } else {
             final Type[] typeArguments = parameterizedSuperclass.getActualTypeArguments();
@@ -186,14 +191,12 @@ public final class ClassUtils {
      * @return {@code true} when readable.
      */
     public static boolean isReadable(final Class<?> clazz, final String fieldName) {
-        final Field field = getField(clazz, fieldName);
-        
-        if (field != null && Modifier.isPublic(field.getModifiers())) {
+        if (NullableUtils.check(getField(clazz, fieldName), Field::getModifiers, Modifier::isPublic)) {
             return true;
         }
         
         try {
-            return MethodUtils.findPropertyGetter(clazz, fieldName) != null;
+            return nonNull(MethodUtils.findPropertyGetter(clazz, fieldName));
         } catch (final NoSuchMethodException e) {
             return false;
         }
@@ -207,14 +210,12 @@ public final class ClassUtils {
      * @return {@code true} when writeable.
      */
     public static boolean isWriteable(final Class<?> clazz, final String fieldName) {
-        final Field field = ClassUtils.getField(clazz, fieldName);
-        
-        if (field != null && Modifier.isPublic(field.getModifiers())) {
+        if (NullableUtils.check(getField(clazz, fieldName), Field::getModifiers, Modifier::isPublic)) {
             return true;
         }
         
         try {
-            return MethodUtils.findPropertySetter(clazz, fieldName) != null;
+            return nonNull(MethodUtils.findPropertySetter(clazz, fieldName));
         } catch (final NoSuchMethodException e) {
             return false;
         }
@@ -231,8 +232,8 @@ public final class ClassUtils {
     public static boolean isWriteable(final Class<?> clazz, final String fieldName, final Object value) {
         final Field field = ClassUtils.getField(clazz, fieldName);
         
-        if (field != null && Modifier.isPublic(field.getModifiers())) {
-            if (value == null) {
+        if (NullableUtils.check(field, Field::getModifiers, Modifier::isPublic)) {
+            if (isNull(value)) {
                 return !field.getType().isPrimitive();
             } else {
                 return TypeUtils.isTypeAssignable(field.getType(), value.getClass());
@@ -242,8 +243,8 @@ public final class ClassUtils {
         try {
             final Method setter = MethodUtils.findPropertySetter(clazz, fieldName);
             
-            if (setter != null) {
-                if (value == null) {
+            if (nonNull(setter)) {
+                if (isNull(value)) {
                     return !setter.getParameterTypes()[0].isPrimitive();
                 } else {
                     return TypeUtils.isTypeAssignable(setter.getParameterTypes()[0], value.getClass());
@@ -318,7 +319,7 @@ public final class ClassUtils {
             
             final Class<?> superClass = objectClass.getSuperclass();
             
-            if (superClass != null) {
+            if (nonNull(superClass)) {
                 collectAllFields(superClass, stopClass, fieldList);
             }
         }

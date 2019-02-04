@@ -46,12 +46,12 @@ public class FilterTest {
         CollectionUtils.filter(null, new ArrayList<>(), value -> Objects.equals("4", value));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullResultCollection() {
         CollectionUtils.filter(new ArrayList<>(), null, value -> Objects.equals("4", value));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullPredicate() {
         CollectionUtils.filter(new ArrayList<>(), new ArrayList<>(), null);
     }

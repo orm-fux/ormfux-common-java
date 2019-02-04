@@ -47,17 +47,17 @@ public class IsSameDayTest {
         assertFalse(DateUtils.isSameDay(calendar2.getTime(), calendar1.getTime()));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate1() {
         DateUtils.isSameDay(null, DateUtils.now());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate2() {
         DateUtils.isSameDay(DateUtils.now(), null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDates() {
         DateUtils.isSameDay(null, null);
     }

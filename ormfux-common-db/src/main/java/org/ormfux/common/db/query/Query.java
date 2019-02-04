@@ -1,5 +1,7 @@
 package org.ormfux.common.db.query;
 
+import static org.ormfux.common.utils.NullableUtils.isNull;
+
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -37,9 +40,7 @@ public class Query extends AbstractQuery {
     protected Query(final DbConnectionProvider dbConnection, final String queryString) {
         super(dbConnection, queryString);
         
-        if (queryString == null) {
-            throw new IllegalArgumentException("The query String is required.");
-        }
+        Objects.requireNonNull(queryString);
     }
     
     /**
@@ -230,7 +231,7 @@ public class Query extends AbstractQuery {
                 query.setQueryString(StringUtils.replaceOnce(query.getQueryString(), ':' + nextParamName, paramInQuery));
                 
                 for (final Object param : paramValues) {
-                    if (param == null) {
+                    if (isNull(param)) {
                         query.addParamValue(null);
                         
                     } else if (param.getClass().isEnum()) {

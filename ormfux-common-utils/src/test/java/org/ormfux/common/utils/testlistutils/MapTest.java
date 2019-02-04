@@ -34,7 +34,7 @@ public class MapTest {
         ListUtils.map(null, value -> value + "mapped");
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullMapFunction() {
         ListUtils.map(new ArrayList<>(), null);
     }

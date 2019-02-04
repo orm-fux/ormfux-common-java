@@ -1,5 +1,7 @@
 package org.ormfux.common.datatype;
 
+import static org.ormfux.common.utils.NullableUtils.isNull;
+
 import java.util.Calendar;
 import java.util.Date;
 
@@ -32,7 +34,7 @@ public enum TimeUnit {
         /** {@inheritDoc} */
         @Override
         public Date moveDateToFirstDayOfInterval(final Date date) {
-            if (date == null) {
+            if (isNull(date)) {
                 return null;
             } else {
                 final Calendar calendar = toCalendar(date);
@@ -49,7 +51,7 @@ public enum TimeUnit {
         /** {@inheritDoc} */
         @Override
         public Date moveDateToLastDayOfInterval(final Date date) {
-            if (date == null) {
+            if (isNull(date)) {
                 return null;
             } else {
                 final Calendar calendar = toCalendar(date);
@@ -76,7 +78,7 @@ public enum TimeUnit {
         /** {@inheritDoc} */
         @Override
         public Date moveDateToFirstDayOfInterval(final Date date) {
-            if (date == null) {
+            if (isNull(date)) {
                 return null;
             } else {
                 final Calendar calendar = toCalendar(date);
@@ -92,7 +94,7 @@ public enum TimeUnit {
         /** {@inheritDoc} */
         @Override
         public Date moveDateToLastDayOfInterval(final Date date) {
-            if (date == null) {
+            if (isNull(date )) {
                 return null;
             } else {
                 final Calendar calendar = toCalendar(date);
@@ -116,7 +118,7 @@ public enum TimeUnit {
         /** {@inheritDoc} */
         @Override
         public Date moveDateToFirstDayOfInterval(final Date date) {
-            if (date == null) {
+            if (isNull(date)) {
                 return null;
                 
             } else {
@@ -133,7 +135,7 @@ public enum TimeUnit {
         /** {@inheritDoc} */
         @Override
         public Date moveDateToLastDayOfInterval(final Date date) {
-            if (date == null) {
+            if (isNull(date)) {
                 return null;
                 
             } else {

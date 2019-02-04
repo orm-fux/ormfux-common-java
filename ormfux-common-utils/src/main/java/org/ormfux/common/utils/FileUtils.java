@@ -1,5 +1,7 @@
 package org.ormfux.common.utils;
 
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 public final class FileUtils {
     
     private FileUtils() {
+        throw new IllegalAccessError(FileUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -117,7 +120,7 @@ public final class FileUtils {
     private static List<String> readFilesFromLooseDirectory(final String directory, final Class<?> classPathIndicator) throws IOException {
         final URL directoryUrl = classPathIndicator.getClassLoader().getResource(directory.substring(1));
         
-        if (directoryUrl != null) {
+        if (nonNull(directoryUrl)) {
             final File directoryFile = new File(directoryUrl.getFile());
             
             if (directoryFile.isDirectory()) {

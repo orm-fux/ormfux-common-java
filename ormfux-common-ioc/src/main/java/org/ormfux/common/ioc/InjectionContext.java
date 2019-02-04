@@ -1,5 +1,7 @@
 package org.ormfux.common.ioc;
 
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,6 +20,7 @@ import org.ormfux.common.ioc.annotations.Inject;
 import org.ormfux.common.ioc.exception.BeanInstantiationException;
 import org.ormfux.common.ioc.exception.BeanLookupException;
 import org.ormfux.common.utils.ListUtils;
+import org.ormfux.common.utils.NullableUtils;
 import org.ormfux.common.utils.reflection.ClassUtils;
 import org.ormfux.common.utils.reflection.exception.InstantiationException;
 
@@ -67,7 +70,7 @@ public final class InjectionContext {
     public static <T> T getBean(final Class<T> beanType) {
         final Object bean = BEANS.get(beanType);
         
-        if (bean != null) {
+        if (nonNull(bean)) {
             return (T) bean;
             
         } else {
@@ -92,7 +95,7 @@ public final class InjectionContext {
      */
     @SuppressWarnings("unchecked")
     private static <T> BeanCreationCache<T> getBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
-        if (BEANS.containsKey(beanType) || newInstancesCache.getCachedBean(beanType) != null) {
+        if (BEANS.containsKey(beanType) || nonNull(newInstancesCache.getCachedBean(beanType))) {
             final BeanCreationCache<T> existingInstanceContainer = new BeanCreationCache<>(newInstancesCache);
             
             if (BEANS.containsKey(beanType)) {
@@ -146,11 +149,11 @@ public final class InjectionContext {
                 
                 Class<?> currentType = beanType;
                 
-                while (currentType != null) {
+                while (nonNull(currentType)) {
                     for (final Field beanField : currentType.getDeclaredFields()) {
                         final Class<?> fieldBeanType = getTypeToInject(beanType, beanField);
                         
-                        if (fieldBeanType != null) {
+                        if (nonNull(fieldBeanType)) {
                             validateBeanDefinition(fieldBeanType, discoveredNewBeans);
                         }
                     }
@@ -247,16 +250,16 @@ public final class InjectionContext {
                                          final BeanCreationCache<?> newInstancesCache) throws BeanInstantiationException {
         Class<?> currentType = beanType;
         
-        while (currentType != null) {
+        while (nonNull(currentType)) {
             for (final Field beanField : currentType.getDeclaredFields()) {
                 final Class<?> fieldBeanType = getTypeToInject(beanType, beanField);
                 
-                if (fieldBeanType != null) {
+                if (nonNull(fieldBeanType)) {
                     final BeanCreationCache<?> fieldValueContainer = getBean(fieldBeanType, newInstancesCache);
                     final Object fieldValue = fieldValueContainer.getBean();
                     newInstancesCache.getNewBeans().putAll(fieldValueContainer.getNewBeans());
                     
-                    if (fieldValue != null) {
+                    if (nonNull(fieldValue)) {
                         if (!beanField.isAccessible()) { //TODO Java11 if (!beanField.canAccess(bean)) {
                             beanField.setAccessible(true);
                         }
@@ -312,7 +315,7 @@ public final class InjectionContext {
         do {
             superClasses.add(0, superClass);
             superClass = superClass.getSuperclass();
-        } while (superClass != null && superClass != Object.class);
+        } while (NullableUtils.nonNull(superClass) && superClass != Object.class);
         
         try {
             for (final Class<?> curSuperClass : superClasses) {
@@ -367,7 +370,7 @@ public final class InjectionContext {
      * @return {@code true} when a manual bean.
      */
     private static boolean isManualBeanType(final Class<?> beanType) {
-        return getBeanDescriptor(beanType) != null;
+        return nonNull(getBeanDescriptor(beanType));
     }
     
     /**

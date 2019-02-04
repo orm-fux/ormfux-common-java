@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.ormfux.common.db.exception.SQLException;
+import org.ormfux.common.utils.NullableUtils;
 
 /**
  * Base for database connection providers.
@@ -28,12 +29,7 @@ public abstract class AbstractDbConnectionProvider implements DbConnectionProvid
      */
     public AbstractDbConnectionProvider(final String driverName, final String databaseUrl, final String... connectionParams) {
         this.databaseUrl = databaseUrl;
-        
-        if (connectionParams == null) {
-            this.connectionParams = Collections.emptyList();
-        } else {
-            this.connectionParams = Arrays.asList(connectionParams);
-        }
+        this.connectionParams = NullableUtils.retrieve(connectionParams, Arrays::asList, Collections.emptyList());
         
         try {
             Class.forName(driverName);

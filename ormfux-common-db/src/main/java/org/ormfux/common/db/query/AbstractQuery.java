@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.ormfux.common.db.exception.DuplicateParamException;
@@ -37,11 +38,7 @@ public abstract class AbstractQuery {
      * @param queryString The query to execute.
      */
     protected AbstractQuery(final DbConnectionProvider dbConnection, final String queryString) {
-        if (dbConnection == null) {
-            throw new IllegalArgumentException("DbConnectionProvider is required.");
-        }
-        
-        this.dbConnectionProvider = dbConnection;
+        this.dbConnectionProvider = Objects.requireNonNull(dbConnection);
         this.queryString = queryString;
     }
     

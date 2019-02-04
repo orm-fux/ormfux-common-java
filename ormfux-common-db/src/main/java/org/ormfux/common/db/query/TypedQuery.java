@@ -1,11 +1,17 @@
 package org.ormfux.common.db.query;
 
+import static org.ormfux.common.utils.NullableUtils.isEmpty;
+import static org.ormfux.common.utils.NullableUtils.isNull;
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+import static org.ormfux.common.utils.NullableUtils.not;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +28,7 @@ import org.ormfux.common.db.generators.NoValueGenerator;
 import org.ormfux.common.db.generators.ValueGenerator;
 import org.ormfux.common.db.query.QueryResult.QueryResultRow;
 import org.ormfux.common.db.query.connection.DbConnectionProvider;
+import org.ormfux.common.utils.NullableUtils;
 import org.ormfux.common.utils.reflection.ClassUtils;
 import org.ormfux.common.utils.reflection.PropertyUtils;
 
@@ -60,16 +67,13 @@ public class TypedQuery<T> extends AbstractQuery {
     protected TypedQuery(final DbConnectionProvider dbConnection, final String querySuffix, final Class<T> resultType, final String entityAlias) {
         super(dbConnection, querySuffix);
         
-        if (resultType == null) {
-            throw new IllegalArgumentException("The entity type is required.");
-        }
+        this.entityType = Objects.requireNonNull(resultType);
+        this.entityAlias = entityAlias;
         
         if (!resultType.isAnnotationPresent(Entity.class)) {
             throw new IllegalArgumentException("The result type must have an @Entity annotation.");
         }
         
-        this.entityType = resultType;
-        this.entityAlias = entityAlias;
     }
     
     /**
@@ -84,7 +88,7 @@ public class TypedQuery<T> extends AbstractQuery {
         final Field idField = getIdField();
         final Object entityId = PropertyUtils.read(entity, idField.getName());
         
-        if (entityId != null) {
+        if (nonNull(entityId)) {
             //entity is already persisted. db version check
             checkVersion(entityType, entity);
             doUpdate(entity);
@@ -145,7 +149,7 @@ public class TypedQuery<T> extends AbstractQuery {
                 
                 Object updateValue = PropertyUtils.read(entity, fieldName);
                 
-                if (updateValue == null) {
+                if (isNull(updateValue)) {
                     //no action necessary
                     
                 } else if (fieldType.isEnum()) {
@@ -231,7 +235,7 @@ public class TypedQuery<T> extends AbstractQuery {
             
             Object updateValue = PropertyUtils.read(entity, fieldName);
             
-            if (updateValue != null) {
+            if (nonNull(updateValue)) {
                 if (fieldType.isEnum()) {
                     //enum fields
                     updateValue = ((Enum<?>) updateValue).name();
@@ -284,9 +288,7 @@ public class TypedQuery<T> extends AbstractQuery {
      * @throws SQLException 
      */
     public int delete(final T entity) throws SQLException {
-        if (entity == null) {
-            throw new IllegalArgumentException("The entity is required.");
-        }
+        Objects.requireNonNull(entity);
         
         //Creating a batch update query, which removes collection content first.
         //This way, when we fail at one part, we commit nothing.
@@ -351,7 +353,7 @@ public class TypedQuery<T> extends AbstractQuery {
         for (final Field collectionField : collectionFields) {
             final List<Object> collection = (List<Object>) PropertyUtils.read(entity, collectionField.getName());
             
-            if (collection != null && !collection.isEmpty()) {
+            if (NullableUtils.check(collection, not(isEmpty()))) {
                 final CollectionOfEntities collDef = collectionField.getAnnotation(CollectionOfEntities.class);
                 final Class<?> collEntityType = getCollectionEntityType(collectionField);
                 final Field collEntityIdField = getIdField(collEntityType);
@@ -453,7 +455,7 @@ public class TypedQuery<T> extends AbstractQuery {
     private List<T> getResultList(final Map<String, Object> loadedEntities) throws SQLException {
         final String queryString;
         
-        if (getQueryString() != null && !getQueryString().isEmpty()) {
+        if (!StringUtils.isEmpty(getQueryString())) {
             queryString = buildSelectAll() + getQueryString();
         } else {
             queryString = buildSelectAll().toString();
@@ -519,11 +521,11 @@ public class TypedQuery<T> extends AbstractQuery {
                     //enum fields
                     PropertyUtils.write(entity, simpleField.getName(), convertToEnumValue(rawValue, fieldType));
                     
-                } else if (fieldType.isAnnotationPresent(Entity.class) && rawValue != null) {
+                } else if (NullableUtils.check(rawValue, () -> fieldType.isAnnotationPresent(Entity.class))) {
                     //field is another entity. load it
                     Object referencedEntity = load(fieldType, rawValue, loadedEntities);
                     
-                    if (referencedEntity == null) {
+                    if (isNull(referencedEntity)) {
                         throw new SQLException("Entity not found: " + entityType + ':' + entityId);
                     }
                     
@@ -651,7 +653,7 @@ public class TypedQuery<T> extends AbstractQuery {
     private Object load(final Class<?> entityType, final Object entityId, final Map<String, Object> loadedEntities) throws SQLException {
         Object loadedEntity = loadedEntities.get(entityType.getName() + ':' + entityId);
         
-        if (loadedEntity == null) {
+        if (isNull(loadedEntity)) {
             final TypedQuery<?> query = new TypedQuery<>(getDbConnectionProvider(), null, entityType);
             loadedEntity = query.load(entityId, loadedEntities);
         }
@@ -668,11 +670,7 @@ public class TypedQuery<T> extends AbstractQuery {
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private Enum convertToEnumValue(final Object value, final Class<?> enumType) {
-        if (value == null) {
-            return null;
-        } else {
-            return Enum.valueOf((Class<Enum>) enumType, value.toString());
-        }
+        return NullableUtils.retrieve(value, enumVal -> Enum.valueOf((Class<Enum>) enumType, enumVal.toString()));
     }
     
     /**
@@ -732,7 +730,7 @@ public class TypedQuery<T> extends AbstractQuery {
         query.addParameter("id", entityId);
         query.addParameter("version", PropertyUtils.read(entity, versionField.getName()));
         
-        if (query.getSingleResult() == null) {
+        if (isNull(query.getSingleResult())) {
             throw new StaleEntityException("The entity version has changed in the database: " + entityType.getName() + ":" + entityId);
         }
     }

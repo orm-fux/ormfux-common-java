@@ -52,12 +52,12 @@ public class MapCollectionTest {
         CollectionUtils.map(nullCollection, result, value -> value + "mapped");
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullResult() {
         CollectionUtils.map(new ArrayList<>(), null, value -> value + "mapped");
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullMapFunction() {
         CollectionUtils.map(new ArrayList<>(), new ArrayList<>(), null);
     }

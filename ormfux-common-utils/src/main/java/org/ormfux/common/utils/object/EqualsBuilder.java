@@ -2,6 +2,7 @@ package org.ormfux.common.utils.object;
 
 import java.util.function.Function;
 
+import org.ormfux.common.utils.NullableUtils;
 import org.ormfux.common.utils.reflection.ClassUtils;
 
 /**
@@ -58,7 +59,7 @@ public class EqualsBuilder<T> {
         
         this.value1 = value1;
         
-        if (value2 == null) {
+        if (NullableUtils.isNull(value2)) {
             this.value2 = null;
             this.state = EqualsState.NEVER_EQUAL;
             

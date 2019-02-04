@@ -61,17 +61,17 @@ public class IsBeforeDayTest {
         assertFalse(DateUtils.isBeforeDay(calendar2.getTime(), calendar1.getTime()));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate1() {
         DateUtils.isBeforeDay(null, DateUtils.now());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate2() {
         DateUtils.isBeforeDay(DateUtils.now(), null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDates() {
         DateUtils.isBeforeDay(null, null);
     }

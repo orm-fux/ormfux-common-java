@@ -30,7 +30,7 @@ public class ExistsTest {
         ListUtils.exists(null, value -> Objects.equals("4", value));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullPredicate() {
         ListUtils.exists(Collections.emptyList(), null);
     }}

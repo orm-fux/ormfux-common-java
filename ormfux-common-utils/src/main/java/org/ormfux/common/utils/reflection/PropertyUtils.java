@@ -1,5 +1,7 @@
 package org.ormfux.common.utils.reflection;
 
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
@@ -9,6 +11,7 @@ import java.lang.reflect.InvocationTargetException;
 public final class PropertyUtils {
     
     private PropertyUtils() {
+        throw new IllegalAccessError(PropertyUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -65,7 +68,7 @@ public final class PropertyUtils {
             
             final Field field = ClassUtils.getField(object.getClass(), propertyName);
             
-            if (field != null) {
+            if (nonNull(field)) {
                 try {
                     return field.get(object);
                 } catch (final IllegalArgumentException | IllegalAccessException e) {
@@ -96,9 +99,9 @@ public final class PropertyUtils {
             } catch (final NoSuchMethodException | IllegalAccessException | IllegalArgumentException
                     | InvocationTargetException | InstantiationException e1) {
                 
-                Field field = ClassUtils.getField(object.getClass(), propertyName);
+                final Field field = ClassUtils.getField(object.getClass(), propertyName);
                 
-                if (field != null) {
+                if (nonNull(field)) {
                     try {
                         field.set(object, value);
                     } catch (final IllegalArgumentException | IllegalAccessException e) {

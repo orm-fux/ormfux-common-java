@@ -114,7 +114,7 @@ public class ShiftTest {
         DateUtils.shift(1, null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate() {
         DateUtils.shift(null, 1, TimeUnit.YEAR);
     }

@@ -3,12 +3,15 @@ package org.ormfux.common.utils.reflection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.ormfux.common.utils.NullableUtils;
+
 /**
  * Utilities for type checking.
  */
 public final class TypeUtils {
     
     private TypeUtils() {
+        throw new IllegalAccessError(TypeUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -57,11 +60,11 @@ public final class TypeUtils {
         }
         
         if (target.isPrimitive() || assigned.isPrimitive()) {
-            if ((TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(target) != null && TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(target).isAssignableFrom(assigned))
-                    || (TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(target) != null && TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(target).isAssignableFrom(assigned))
-                    || (TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(assigned) != null && target.isAssignableFrom(TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(assigned)))
-                    || (TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(assigned) != null && target.isAssignableFrom(TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(assigned)))) {
-                    return true;
+            if (NullableUtils.check(TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(target), () -> TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(target).isAssignableFrom(assigned))
+                    || NullableUtils.check(TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(target), () -> TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(target).isAssignableFrom(assigned))
+                    || NullableUtils.check(TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(assigned), () -> target.isAssignableFrom(TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(assigned)))
+                    || NullableUtils.check(TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(assigned), () -> target.isAssignableFrom(TypeUtils.TYPE_TO_PRIMITIVE_TYPE_MAP.get(assigned)))) {
+                return true;
             }
         }
         

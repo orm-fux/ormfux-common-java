@@ -1,7 +1,11 @@
 package org.ormfux.common.utils;
 
+import static org.ormfux.common.utils.NullableUtils.isNull;
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import org.ormfux.common.datatype.TimeUnit;
@@ -12,8 +16,9 @@ import org.ormfux.common.datatype.TimeUnit;
 public final class DateUtils {
     
     private DateUtils() {
+        throw new IllegalAccessError(DateUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
-
+    
     /**
      * Returns a date, representing today 0 o'clock.
      *
@@ -30,9 +35,7 @@ public final class DateUtils {
      * @return today
      */
     public static Date today(final TimeZone timeZone) {
-        if (timeZone == null) {
-            throw new IllegalArgumentException("The TimeZone is required.");
-        }
+        Objects.requireNonNull(timeZone);
         
         return getCalendar(null, timeZone).getTime();
     }
@@ -87,13 +90,13 @@ public final class DateUtils {
     public static Calendar getCalendar(final Date date, final TimeZone timeZone) {
         final Calendar calendar;
         
-        if (timeZone != null) {
-            calendar = Calendar.getInstance(timeZone);
-        } else {
+        if (isNull(timeZone)) {
             calendar = Calendar.getInstance();
+        } else {
+            calendar = Calendar.getInstance(timeZone);
         }
         
-        if (date != null) {
+        if (nonNull(date)) {
             calendar.setTime(date);
         }
         
@@ -195,13 +198,8 @@ public final class DateUtils {
      * @throws IllegalArgumentException When one of the dates is not defined.
      */
     private static void checkDatesProvided(final Date date1, final Date date2) throws IllegalArgumentException {
-        if (date1 == null) {
-            throw new IllegalArgumentException("date1 is required.");
-        }
-        
-        if (date2 == null) {
-            throw new IllegalArgumentException("date2 is required.");
-        }
+        Objects.requireNonNull(date1);
+        Objects.requireNonNull(date2);
     }
 
     /**
@@ -228,9 +226,7 @@ public final class DateUtils {
      * @param unit The unit of the quantity.
      */
     public static Date shift(final Date date, final int quantity, final TimeUnit unit) {
-        if (date == null) {
-            throw new IllegalArgumentException("The date is required.");
-        }
+        Objects.requireNonNull(date);
         
         final int calendarCode;
         

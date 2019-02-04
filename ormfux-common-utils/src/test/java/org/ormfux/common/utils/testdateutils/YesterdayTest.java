@@ -37,7 +37,7 @@ public class YesterdayTest {
         assertEquals(calendar.getTimeInMillis(), DateUtils.yesterday(randomDate).getTime());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingYesterdayDate() {
         DateUtils.yesterday(null);
     }

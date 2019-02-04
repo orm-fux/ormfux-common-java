@@ -31,7 +31,7 @@ public class SelectFirstTest {
         ListUtils.selectFirst(null, value -> true);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullCondition() {
         ListUtils.selectFirst(new ArrayList<>(), null);
     }

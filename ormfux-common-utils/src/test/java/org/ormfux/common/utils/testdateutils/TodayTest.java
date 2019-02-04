@@ -38,7 +38,7 @@ public class TodayTest {
         assertEquals(now.getTimeInMillis(), today.getTime());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingTimeZone() {
         DateUtils.today(null);
     }

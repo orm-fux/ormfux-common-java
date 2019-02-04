@@ -1,5 +1,7 @@
 package org.ormfux.common.db.query.connection;
 
+import static org.ormfux.common.utils.NullableUtils.isNull;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -8,10 +10,10 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 
-import org.ormfux.common.db.exception.SQLException;
-import org.ormfux.common.utils.DateUtils;
 import org.h2.engine.Constants;
 import org.h2.store.fs.FileUtils;
+import org.ormfux.common.db.exception.SQLException;
+import org.ormfux.common.utils.DateUtils;
 
 /**
  * Provider for H2 database connections.
@@ -45,7 +47,7 @@ public class H2DbConnectionProvider extends AbstractDbConnectionProvider {
      * @return The URL with the params.
      */
     private String assembleConnectionUrl(final String databaseFile, final String... connectionParams) {
-        if (connectionParams == null) {
+        if (isNull(connectionParams)) {
             return databaseFile;
         } else {
             final StringBuilder connectionBuilder = new StringBuilder(databaseFile);

@@ -10,7 +10,7 @@ import org.ormfux.common.utils.object.Objects;
 
 public class ConnectionProviderTest extends AbstractAbstractQueryTest {
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNoConnectionProvider() {
         new MockQuery(null);
     }

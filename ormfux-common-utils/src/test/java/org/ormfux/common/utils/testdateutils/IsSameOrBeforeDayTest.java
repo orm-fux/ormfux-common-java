@@ -61,17 +61,17 @@ public class IsSameOrBeforeDayTest {
         assertFalse(DateUtils.isSameOrBeforeDay(calendar2.getTime(), calendar1.getTime()));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate1() {
         DateUtils.isSameOrBeforeDay(null, DateUtils.now());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate2() {
         DateUtils.isSameOrBeforeDay(DateUtils.now(), null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDates() {
         DateUtils.isSameOrBeforeDay(null, null);
     }

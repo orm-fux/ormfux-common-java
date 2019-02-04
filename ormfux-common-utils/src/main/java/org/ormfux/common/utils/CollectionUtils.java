@@ -1,16 +1,21 @@
 package org.ormfux.common.utils;
 
+import static org.ormfux.common.utils.NullableUtils.isNull;
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class CollectionUtils {
     
     private CollectionUtils() {
+        throw new IllegalAccessError(CollectionUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -24,13 +29,8 @@ public final class CollectionUtils {
      * @return target collection
      */
     public static <S, T> Collection<T> map(final S[] source, final Collection<T> result, final Function<S, T> functor) {
-        if (result == null) {
-            throw new IllegalArgumentException("The result collection is required.");
-        }
-        
-        if (functor == null) {
-            throw new IllegalArgumentException("The map function is required.");
-        }
+        Objects.requireNonNull(result);
+        Objects.requireNonNull(functor);
         
         for (final S sourceElement : source) {
             result.add(functor.apply(sourceElement));
@@ -50,13 +50,8 @@ public final class CollectionUtils {
      * @return target collection
      */
     public static <S, T> Collection<T> map(final Collection<? extends S> source, final Collection<T> result, final Function<S, T> functor) {
-        if (result == null) {
-            throw new IllegalArgumentException("The result collection is required.");
-        }
-        
-        if (functor == null) {
-            throw new IllegalArgumentException("The map function is required.");
-        }
+        Objects.requireNonNull(result);
+        Objects.requireNonNull(functor);
         
         for (final S sourceElement : source) {
             result.add(functor.apply(sourceElement));
@@ -78,16 +73,14 @@ public final class CollectionUtils {
      */
     @SuppressWarnings("unchecked")
     public static <S, T> T[] mapToArray(final Collection<S> source, final Function<S, T> functor) {
-        if (functor == null) {
-            throw new IllegalArgumentException("Map function is required.");
-        }
+        Objects.requireNonNull(functor);
         
         final List<T> resultList = new ArrayList<>(source.size());
         
         for (final S sourceElement : source) {
             final T executeResult = functor.apply(sourceElement);
             
-            if (executeResult != null) {
+            if (nonNull(executeResult)) {
                 // add the non-null results to the list only
                 resultList.add(executeResult);
             }
@@ -106,13 +99,8 @@ public final class CollectionUtils {
      * @return target array
      */
     public static <T> Collection<T> filter(final Collection<T> source, final Collection<T> result, final Predicate<T> predicate) {
-        if (result == null) {
-            throw new IllegalArgumentException("The result collection is required.");
-        }
-        
-        if (predicate == null) {
-            throw new IllegalArgumentException("The filter predicate is required.");
-        }
+        Objects.requireNonNull(result);
+        Objects.requireNonNull(predicate);
         
         for (final T sourceElement : source) {
             if (predicate.test(sourceElement)) {
@@ -130,7 +118,7 @@ public final class CollectionUtils {
      * @return true, if {@code null} or empty
      */
     public static <T> boolean isEmpty(final Collection<T> collection) {
-        return collection == null || collection.size() == 0;
+        return NullableUtils.check(collection, NullableUtils.isEmpty(), true);
     }
     
     /**
@@ -145,9 +133,7 @@ public final class CollectionUtils {
      *         {@code true}; {@code null} when there is none.
      */
     public static <T> T selectFirst(final Collection<T> collection, final Predicate<T> predicate) {
-        if (predicate == null) {
-            throw new IllegalArgumentException("The predicate is required.");
-        }
+        Objects.requireNonNull(predicate);
         
         for (final T sourceElement : collection) {
             if (predicate.test(sourceElement)) {
@@ -170,9 +156,7 @@ public final class CollectionUtils {
      * @return {@code true} when there is an element in the collection fulfilling the predicate.
      */
     public static <T> boolean exists(final Collection<T> collection, final Predicate<T> predicate) {
-        if (predicate == null) {
-            throw new IllegalArgumentException("The predicate is required.");
-        }
+        Objects.requireNonNull(predicate);
         
         for (final T sourceElement : collection) {
             if (predicate.test(sourceElement)) {
@@ -197,7 +181,7 @@ public final class CollectionUtils {
     public static <T> boolean isEqual(final Collection<T> col1, final Collection<T> col2) {
         if (col1 == col2) {
             return true;
-        } else if ((col1 == null && col2 != null) || (col1 != null && col2 == null)) {
+        } else if ((isNull(col1) && nonNull(col2)) || (nonNull(col1) && isNull(col2))) {
             return false;
         } else if (col1.size() != col2.size()) {
             return false;

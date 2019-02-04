@@ -31,7 +31,7 @@ public class SelectLastTest {
         ListUtils.selectLast(null, value -> true);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullCondition() {
         ListUtils.selectLast(new ArrayList<>(), null);
     }

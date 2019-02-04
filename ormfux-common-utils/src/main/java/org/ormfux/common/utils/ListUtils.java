@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -13,6 +14,7 @@ import java.util.function.Predicate;
 public final class ListUtils {
     
     private ListUtils() {
+        throw new IllegalAccessError(ListUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -69,9 +71,7 @@ public final class ListUtils {
      *         {@code true};  {@code null} when there is none.
      */
     public static <T> T selectLast(final List<T> list, final Predicate<T> predicate) {
-        if (predicate == null) {
-            throw new IllegalArgumentException("The predicate is required.");
-        }
+        Objects.requireNonNull(predicate);
         
         if (list.isEmpty()) {
             return null;
@@ -153,7 +153,7 @@ public final class ListUtils {
     public static <T> List<T> fromArray(final T... objects) {
         final List<T> result = new ArrayList<>();
         
-        if (objects != null && objects.length > 0) {
+        if (NullableUtils.check(objects, () -> objects.length > 0)) {
             Collections.addAll(result, objects);
         }
         

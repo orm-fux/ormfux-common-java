@@ -61,17 +61,17 @@ public class IsAfterDayTest {
         assertTrue(DateUtils.isAfterDay(calendar2.getTime(), calendar1.getTime()));
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate1() {
         DateUtils.isAfterDay(null, DateUtils.now());
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDate2() {
         DateUtils.isAfterDay(DateUtils.now(), null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testMissingDates() {
         DateUtils.isAfterDay(null, null);
     }

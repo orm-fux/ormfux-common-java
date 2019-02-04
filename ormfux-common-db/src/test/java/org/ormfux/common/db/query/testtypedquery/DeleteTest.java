@@ -41,7 +41,7 @@ public class DeleteTest extends AbstractTypedQueryTest {
         
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullEntity() {
         TypedQuery<MockEntity> typedQuery = queryManager.createQuery(MockEntity.class);
         typedQuery.delete(null);

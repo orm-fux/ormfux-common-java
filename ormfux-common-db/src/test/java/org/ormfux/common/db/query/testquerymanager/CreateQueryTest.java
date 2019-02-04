@@ -36,7 +36,7 @@ public class CreateQueryTest extends AbstractQueryManagerTest {
         checkQueryValues(query, "query string", connectionProvider, null, null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testCreateNativeQueryWithoutString() {
         String nullString = null;
         queryManager.createQuery(nullString);
@@ -49,7 +49,7 @@ public class CreateQueryTest extends AbstractQueryManagerTest {
         checkQueryValues(query, null, connectionProvider, MockEntity.class, null);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testCreateTypedQueryNullEntityType() {
         Class<?> nullType = null;
         queryManager.createQuery(nullType);

@@ -51,12 +51,12 @@ public class MapArrayTest {
         CollectionUtils.map(nullArray, result, value -> value + "mapped");
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullResult() {
         CollectionUtils.map(new String[0], null, value -> value + "mapped");
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullMapFunction() {
         CollectionUtils.map(new String[0], new ArrayList<>(), null);
     }

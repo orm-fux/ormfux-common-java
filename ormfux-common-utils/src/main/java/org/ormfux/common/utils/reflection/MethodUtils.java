@@ -1,5 +1,9 @@
 package org.ormfux.common.utils.reflection;
 
+import static org.ormfux.common.utils.NullableUtils.equalTo;
+import static org.ormfux.common.utils.NullableUtils.isNull;
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -8,6 +12,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.ormfux.common.utils.ListUtils;
+import org.ormfux.common.utils.NullableUtils;
 
 /**
  * utilities for working with methods and "method/property paths".
@@ -15,6 +20,7 @@ import org.ormfux.common.utils.ListUtils;
 public final class MethodUtils {
     
     private MethodUtils() {
+        throw new IllegalAccessError(MethodUtils.class.getSimpleName() + " class is not intended to be instantiated");
     }
     
     /**
@@ -39,14 +45,14 @@ public final class MethodUtils {
     public static Method findPropertySetter(final Class<?> entityClass, final String property, final Class<?> propertyType) throws NoSuchMethodException {
         final String setterName = "set" + StringUtils.capitalize(property);
         
-        if (propertyType != null) {
+        if (NullableUtils.nonNull(propertyType)) {
             Method setterMethod = null; 
             
             try {
                 setterMethod = entityClass.getMethod(setterName, propertyType);
             } catch (final NoSuchMethodException e) {}
             
-            if (setterMethod == null) {
+            if (isNull(setterMethod)) {
                 if (propertyType.isPrimitive()) {
                     //use "object type" if method for primitive type is not found
                     setterMethod = entityClass.getMethod(setterName, TypeUtils.PRIMITIVE_TYPE_TO_TYPE_MAP.get(propertyType));
@@ -77,7 +83,7 @@ public final class MethodUtils {
                 }
             }
             
-            if (setterMethod != null && Modifier.isPublic(setterMethod.getModifiers())) {
+            if (NullableUtils.check(setterMethod, Method::getModifiers, Modifier::isPublic)) {
                 return setterMethod;
             }
         } else {
@@ -106,7 +112,7 @@ public final class MethodUtils {
      * @return The setter method.
      */
     public static Method findPropertyGetter(final Class<?> entityClass, final String property, final Class<?> propertyType) throws NoSuchMethodException {
-        if (propertyType == null) {
+        if (isNull(propertyType)) {
             return findPropertyGetter(entityClass, property);
         }
         
@@ -132,7 +138,7 @@ public final class MethodUtils {
             getterMethod = entityClass.getMethod(getterName);
         }
         
-        if (getterMethod != null && Modifier.isPublic(getterMethod.getModifiers())) {
+        if (NullableUtils.check(getterMethod, Method::getModifiers, Modifier::isPublic)) {
             if (propertyType.isAssignableFrom(getterMethod.getReturnType())) {
                 return getterMethod;
             } else {
@@ -178,23 +184,23 @@ public final class MethodUtils {
             getterMethod = entityClass.getMethod(getterName);
         } catch (final NoSuchMethodException e) {}
         
-        if (getterMethod == null) {
+        if (isNull(getterMethod)) {
             try {
                 getterMethod = entityClass.getMethod(booleanGetterName);
             } catch (final NoSuchMethodException e) {}
         }
         
-        if (getterMethod != null && getterMethod.getReturnType().equals(Boolean.TYPE)) {
+        if (NullableUtils.check(getterMethod, Method::getReturnType, equalTo(Boolean.TYPE))) {
             try {
                 final Method booleanGetterMethod = entityClass.getMethod(booleanGetterName);
                 
-                if (booleanGetterMethod != null) {
+                if (nonNull(booleanGetterMethod)) {
                     getterMethod = booleanGetterMethod;
                 }
             } catch (final NoSuchMethodException e) {}
         }
         
-        if (getterMethod != null && Modifier.isPublic(getterMethod.getModifiers())) {
+        if (NullableUtils.check(getterMethod, Method::getModifiers, Modifier::isPublic)) {
             return getterMethod;
         }
         
@@ -217,7 +223,7 @@ public final class MethodUtils {
                                                final Class<?> returnType, 
                                                final Class<?>... parameterTypes) throws NoSuchMethodException {
         if (pathToMethod.isEmpty() || pathToMethod.startsWith(".") || pathToMethod.endsWith(".")) {
-            throw new IllegalArgumentException("Invalid path to method '"+pathToMethod+"'");
+            throw new IllegalArgumentException("Invalid path to method '"  +pathToMethod + "'");
         }
         
         final int lastMethodPos = pathToMethod.lastIndexOf('.');
@@ -256,7 +262,7 @@ public final class MethodUtils {
                                                                 final Class<?>[] parameterTypes, 
                                                                 final int[] nullArgumentIndices) throws NoSuchMethodException {
         if (pathToMethod.isEmpty() || pathToMethod.startsWith(".") || pathToMethod.endsWith(".")) {
-            throw new IllegalArgumentException("Invalid path to method '"+pathToMethod+"'");
+            throw new IllegalArgumentException("Invalid path to method '" + pathToMethod + "'");
         }
         
         final int lastMethodPos = pathToMethod.lastIndexOf('.');
@@ -296,7 +302,7 @@ public final class MethodUtils {
         final Method method = root.getMethod(methodName, parameterTypes);
         
         if (Modifier.isPublic(method.getModifiers()) ) {
-            if (returnType == null || TypeUtils.isTypeAssignable(returnType, method.getReturnType())) {
+            if (isNull(returnType) || TypeUtils.isTypeAssignable(returnType, method.getReturnType())) {
                 return method;
             }
         }
@@ -321,10 +327,11 @@ public final class MethodUtils {
                                                           final Class<?> returnType, 
                                                           final Class<?>[] parameterTypes, 
                                                           final int[] nullArgumentIndices) throws NoSuchMethodException {
-        final int noOfParameters = (parameterTypes == null ? 0 : parameterTypes.length) + (nullArgumentIndices == null ? 0 : nullArgumentIndices.length);
+        final int noOfParameters = NullableUtils.retrieve(parameterTypes, array -> array.length, 0) 
+                                        + NullableUtils.retrieve(nullArgumentIndices, array -> array.length, 0);
         final List<Integer> nullArgIndexList = new ArrayList<>();
         
-        if (nullArgumentIndices != null) {
+        if (nonNull(nullArgumentIndices)) {
             for (int nullArgumentIndex : nullArgumentIndices) {
                 nullArgIndexList.add(nullArgumentIndex);
             }
@@ -343,7 +350,7 @@ public final class MethodUtils {
                 
                 for (int i = 0, parameterTypeIndex = 0; i < methodParameterTypes.length; i++) {
                     if (!nullArgIndexList.contains(i)) {
-                        if(parameterTypes != null && !TypeUtils.isTypeAssignable(methodParameterTypes[i], parameterTypes[parameterTypeIndex++])){
+                        if(nonNull(parameterTypes) && !TypeUtils.isTypeAssignable(methodParameterTypes[i], parameterTypes[parameterTypeIndex++])) {
                             argumentsMatch = false;
                             break;
                         }
@@ -358,7 +365,7 @@ public final class MethodUtils {
             }
         }
         
-        if (result != null && (returnType == null || TypeUtils.isTypeAssignable(returnType, result.getReturnType()))) {
+        if (nonNull(result) && (isNull(returnType) || TypeUtils.isTypeAssignable(returnType, result.getReturnType()))) {
             return result;
         }
         
@@ -384,7 +391,7 @@ public final class MethodUtils {
         for (int pathIndex = 0; pathIndex < properties.length; pathIndex++) {
             final Method getterMethod;
             
-            if (pathIndex < properties.length - 1 || propertyType == null) {
+            if (pathIndex < properties.length - 1 || isNull(propertyType)) {
                 getterMethod = findPropertyGetter(currentClass, properties[pathIndex]);
             } else {
                 getterMethod = findPropertyGetter(currentClass, properties[pathIndex], propertyType);
@@ -408,7 +415,7 @@ public final class MethodUtils {
      */
     public static List<Method> getPropertySetterPath(final Class<?> root, final String propertyPath, final Class<?> propertyType) throws NoSuchMethodException {
         final String[] properties = propertyPath.split("\\.");
-        final List<Method> getterMethods = new ArrayList<Method>();
+        final List<Method> getterMethods = new ArrayList<>();
         
         Class<?> currentClass = root;
         
@@ -463,7 +470,7 @@ public final class MethodUtils {
                                                                                            IllegalArgumentException, 
                                                                                            InvocationTargetException, 
                                                                                            InstantiationException {
-        final List<Method> propertyGetterPath = getPropertyGetterPath(root.getClass(), propertyPath, propertyType);
+        final List<Method> propertyGetterPath = getPropertyGetterPath(ClassUtils.getClass(root), propertyPath, propertyType);
         
         return invokePropertyGetterPath(root, propertyGetterPath, createIntermediate);
     }
@@ -486,13 +493,13 @@ public final class MethodUtils {
         Object currentObject = root;
         
         for (int i = 0; i < propertyGetterPath.size(); i++) {
-            if (currentObject == null) {
+            if (isNull(currentObject)) {
                 return null;
             }
             
             final Object invocationResult = propertyGetterPath.get(i).invoke(currentObject);
             
-            if (invocationResult == null && i < ListUtils.maxIndex(propertyGetterPath) && createIntermediate) {
+            if (isNull(invocationResult) && i < ListUtils.maxIndex(propertyGetterPath) && createIntermediate) {
                 //object is missing on the path to last getter. create intermediate objects
                 currentObject = createObjectsForPath(currentObject, propertyGetterPath.subList(i, ListUtils.maxIndex(propertyGetterPath)));
                 //last getter for next loop-cycle
@@ -522,7 +529,9 @@ public final class MethodUtils {
                                                                                            IllegalArgumentException, 
                                                                                            InvocationTargetException, 
                                                                                            InstantiationException {
-        final List<Method> propertySetterPath = getPropertySetterPath(root.getClass(), propertyPath, valueToSet == null ? null : valueToSet.getClass());
+        final List<Method> propertySetterPath = getPropertySetterPath(root.getClass(), 
+                                                                      propertyPath, 
+                                                                      NullableUtils.retrieve(valueToSet, ClassUtils::getClass));
         
         return invokePropertySetterPath(root, propertySetterPath, valueToSet, createIntermediate);
     }
@@ -547,13 +556,9 @@ public final class MethodUtils {
         Object currentObject = root;
         
         for (int i = 0; i < ListUtils.maxIndex(propertySetterPath); i++) {
-//            if (currentObject == null) {
-//                return null;
-//            }
-            
             final Object invocationResult = propertySetterPath.get(i).invoke(currentObject);
             
-            if (invocationResult == null) {
+            if (isNull(invocationResult)) {
                 if (createIntermediate) {
                     //object is missing on the path to last getter
                     //create intermediate objects

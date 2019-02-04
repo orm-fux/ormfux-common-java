@@ -1,5 +1,7 @@
 package org.ormfux.common.db.query;
 
+import static org.ormfux.common.utils.NullableUtils.nonNull;
+
 import java.util.Arrays;
 
 import org.ormfux.common.db.query.connection.AbstractDbConnectionProvider;
@@ -67,7 +69,7 @@ public class QueryManager {
     public void setDatabase(final Class<? extends AbstractDbConnectionProvider> connectionProviderType, 
                             final String databaseUrl, 
                             final String... connectionParams) {
-        if (this.connectionProvider != null) {
+        if (nonNull(this.connectionProvider)) {
             connectionProvider.closeAllConnections();
         }
         

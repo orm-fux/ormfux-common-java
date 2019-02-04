@@ -32,7 +32,7 @@ public class MapToArrayTest {
         CollectionUtils.mapToArray(null, value -> value + "mapped");
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NullPointerException.class)
     public void testNullMapFunction() {
         CollectionUtils.mapToArray(Arrays.asList("1", "2", "3"), null);
     }
