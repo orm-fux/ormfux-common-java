@@ -1,0 +1,7 @@
+dependencies {
+	implementation project(':ormfux-common-utils')
+}
+
+//test {
+//    exclude '**/AbstractInjectionContextTest'
+//}
