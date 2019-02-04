@@ -23,7 +23,7 @@ public class IsBeforeDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertFalse(DateUtils.isBeforeDay(calendar1.getTime(), calendar2.getTime()));
         assertFalse(DateUtils.isBeforeDay(calendar2.getTime(), calendar1.getTime()));
         
@@ -41,7 +41,7 @@ public class IsBeforeDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertTrue(DateUtils.isBeforeDay(calendar1.getTime(), calendar2.getTime()));
     }
     
@@ -57,8 +57,23 @@ public class IsBeforeDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertFalse(DateUtils.isBeforeDay(calendar2.getTime(), calendar1.getTime()));
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDate1() {
+        DateUtils.isBeforeDay(null, DateUtils.now());
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDate2() {
+        DateUtils.isBeforeDay(DateUtils.now(), null);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDates() {
+        DateUtils.isBeforeDay(null, null);
     }
     
 }

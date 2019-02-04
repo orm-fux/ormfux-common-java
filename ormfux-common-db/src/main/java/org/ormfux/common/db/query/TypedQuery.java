@@ -60,6 +60,10 @@ public class TypedQuery<T> extends AbstractQuery {
     protected TypedQuery(final DbConnectionProvider dbConnection, final String querySuffix, final Class<T> resultType, final String entityAlias) {
         super(dbConnection, querySuffix);
         
+        if (resultType == null) {
+            throw new IllegalArgumentException("The entity type is required.");
+        }
+        
         if (!resultType.isAnnotationPresent(Entity.class)) {
             throw new IllegalArgumentException("The result type must have an @Entity annotation.");
         }
@@ -172,10 +176,6 @@ public class TypedQuery<T> extends AbstractQuery {
         //collections
         queryString.append(createClearCollectionsQuery());
         
-        final Query updateCollectionsVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
-        queryString.append(updateCollectionsVersionQuery.getQueryString());
-        queryParams.putAll(updateCollectionsVersionQuery.getQueryParams());
-        
         final Query insertCollectionsQuery = createInsertCollectionsQuery(entity);
         queryString.append(insertCollectionsQuery.getQueryString());
         queryParams.putAll(insertCollectionsQuery.getQueryParams());
@@ -260,10 +260,6 @@ public class TypedQuery<T> extends AbstractQuery {
                    .append(" values ").append(valuesDef)
                    .append("; ");
         
-        final Query updateCollectionsVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
-        queryString.append(updateCollectionsVersionQuery.getQueryString());
-        queryParams.putAll(updateCollectionsVersionQuery.getQueryParams());
-        
         final Query insertCollectionsQuery = createInsertCollectionsQuery(entity);
         queryString.append(insertCollectionsQuery.getQueryString());
         queryParams.putAll(insertCollectionsQuery.getQueryParams());
@@ -280,59 +276,6 @@ public class TypedQuery<T> extends AbstractQuery {
     }
     
     /**
-     * Creates an update query to increment the version number of entities referenced in another
-     * entity's collection.
-     * 
-     * @param entity The entity holding the collections.
-     * @return The query.
-     */
-    @SuppressWarnings("unchecked")
-    private Query createCollectionEntityVersionUpdateQuery(final T entity) {
-        final List<Field> collectionFields = getMappedCollectionFields();
-        
-        final StringBuilder insertCollectionsQuery = new StringBuilder();
-        final Map<String, Object> paramValues = new HashMap<>();
-        int paramIdx = 0;
-        
-        for (final Field collectionField : collectionFields) {
-            final List<Object> collection = (List<Object>) PropertyUtils.read(entity, collectionField.getName());
-            
-            if (collection != null && !collection.isEmpty()) {
-                final Class<?> collEntityType = getCollectionEntityType(collectionField);
-                final Field collEntityIdField = getIdField(collEntityType);
-                final Field versionField = getVersionField(collEntityType);
-                final String joinTableName = getJoinTableName(collectionField);
-                
-                if (StringUtils.isBlank(joinTableName)) {
-                    //collection is mapped with simple join column
-                    final String collEntityTable = getTableName(collEntityType);
-                    
-                    final String baseUpdate = "update " + collEntityTable 
-                                                + " set " + collEntityTable + '.' + versionField.getAnnotation(Column.class).columnName() + " = :";
-                    
-                    for (final Object collEntity : collection) {
-                        final String verIdParamName = "refVerIdPar" + paramIdx;
-                        final String verParamName = "refVerPar" + (paramIdx++);
-                        
-                        insertCollectionsQuery.append(baseUpdate)
-                                              .append(verParamName)
-                                              .append(" where " + collEntityTable +  '.' + getIdField(collEntityType).getAnnotation(Column.class).columnName() + " = :")
-                                              .append(verIdParamName).append("; ");
-                        
-                        paramValues.put(verIdParamName, PropertyUtils.read(collEntity, collEntityIdField.getName()));
-                        paramValues.put(verParamName, new LongIncrementGenerator().generate(PropertyUtils.read(collEntity, versionField.getName())));
-                    }
-                }
-            }
-        }
-        
-        final Query query = new Query(getDbConnectionProvider(), insertCollectionsQuery.toString());
-        query.addParameters(paramValues);
-        
-        return query; 
-    }
-    
-    /**
      * Deletes the entity.
      * 
      * @param entity The entity to delete.
@@ -341,6 +284,10 @@ public class TypedQuery<T> extends AbstractQuery {
      * @throws SQLException 
      */
     public int delete(final T entity) throws SQLException {
+        if (entity == null) {
+            throw new IllegalArgumentException("The entity is required.");
+        }
+        
         //Creating a batch update query, which removes collection content first.
         //This way, when we fail at one part, we commit nothing.
         final StringBuilder deleteQuery = new StringBuilder();
@@ -352,10 +299,7 @@ public class TypedQuery<T> extends AbstractQuery {
         
         deleteQuery.append("delete from " + getTableName() + " where " + getTableName() + '.' + columnDef.columnName() + " = :id; ");
         
-        final Query collectionVersionQuery = createCollectionEntityVersionUpdateQuery(entity);
-        
-        final Query query = new Query(getDbConnectionProvider(), collectionVersionQuery.getQueryString() + deleteQuery.toString());
-        query.addParameters(collectionVersionQuery.getQueryParams());
+        final Query query = new Query(getDbConnectionProvider(), deleteQuery.toString());
         query.addParameter("id", PropertyUtils.read(entity, idField.getName()));
         
         return query.executeUpdate();

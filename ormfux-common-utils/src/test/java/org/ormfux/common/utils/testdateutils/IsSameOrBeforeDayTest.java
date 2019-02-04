@@ -23,7 +23,7 @@ public class IsSameOrBeforeDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertTrue(DateUtils.isSameOrBeforeDay(calendar1.getTime(), calendar2.getTime()));
         assertTrue(DateUtils.isSameOrBeforeDay(calendar2.getTime(), calendar1.getTime()));
         
@@ -41,7 +41,7 @@ public class IsSameOrBeforeDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertTrue(DateUtils.isSameOrBeforeDay(calendar1.getTime(), calendar2.getTime()));
     }
     
@@ -57,8 +57,23 @@ public class IsSameOrBeforeDayTest {
         calendar1.set(Calendar.MILLISECOND, 999);
         calendar1.set(Calendar.SECOND, 59);
         calendar1.set(Calendar.MINUTE, 59);
-        calendar1.set(Calendar.HOUR, 23);
+        calendar1.set(Calendar.HOUR_OF_DAY, 23);
         assertFalse(DateUtils.isSameOrBeforeDay(calendar2.getTime(), calendar1.getTime()));
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDate1() {
+        DateUtils.isSameOrBeforeDay(null, DateUtils.now());
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDate2() {
+        DateUtils.isSameOrBeforeDay(DateUtils.now(), null);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testMissingDates() {
+        DateUtils.isSameOrBeforeDay(null, null);
     }
     
 }

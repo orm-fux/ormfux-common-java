@@ -36,6 +36,10 @@ public class Query extends AbstractQuery {
      */
     protected Query(final DbConnectionProvider dbConnection, final String queryString) {
         super(dbConnection, queryString);
+        
+        if (queryString == null) {
+            throw new IllegalArgumentException("The query String is required.");
+        }
     }
     
     /**

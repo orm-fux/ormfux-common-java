@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.StringUtils;
 import org.ormfux.common.db.exception.DuplicateParamException;
 import org.ormfux.common.db.exception.SQLException;
 import org.ormfux.common.db.query.connection.DbConnectionProvider;
@@ -36,6 +37,10 @@ public abstract class AbstractQuery {
      * @param queryString The query to execute.
      */
     protected AbstractQuery(final DbConnectionProvider dbConnection, final String queryString) {
+        if (dbConnection == null) {
+            throw new IllegalArgumentException("DbConnectionProvider is required.");
+        }
+        
         this.dbConnectionProvider = dbConnection;
         this.queryString = queryString;
     }
@@ -48,8 +53,10 @@ public abstract class AbstractQuery {
      * 
      * @throws SQLException 
      */
-    public void addParameter(final String paramName, final Object value) throws SQLException {
-        if (queryParams.containsKey(paramName)) {
+    public final void addParameter(final String paramName, final Object value) throws SQLException {
+        if (StringUtils.isBlank(paramName)) {
+            throw new IllegalArgumentException("The parameter name is required.");
+        } else if (queryParams.containsKey(paramName)) {
             throw new DuplicateParamException("A parameter with this name is already defined: " + paramName);
         } else {
             queryParams.put(paramName, value);
@@ -61,7 +68,7 @@ public abstract class AbstractQuery {
      * 
      * @param parameters The parameters. Key is the parameter name and value, well, the value.
      */
-    public void addParameters(final Map<String, Object> parameters) throws SQLException {
+    public final void addParameters(final Map<String, Object> parameters) throws SQLException {
         for (final Entry<String, Object> param : parameters.entrySet()) {
             addParameter(param.getKey(), param.getValue());
         }

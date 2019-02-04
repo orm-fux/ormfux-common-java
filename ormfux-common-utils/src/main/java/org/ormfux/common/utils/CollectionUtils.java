@@ -24,6 +24,14 @@ public final class CollectionUtils {
      * @return target collection
      */
     public static <S, T> Collection<T> map(final S[] source, final Collection<T> result, final Function<S, T> functor) {
+        if (result == null) {
+            throw new IllegalArgumentException("The result collection is required.");
+        }
+        
+        if (functor == null) {
+            throw new IllegalArgumentException("The map function is required.");
+        }
+        
         for (final S sourceElement : source) {
             result.add(functor.apply(sourceElement));
         }
@@ -42,9 +50,18 @@ public final class CollectionUtils {
      * @return target collection
      */
     public static <S, T> Collection<T> map(final Collection<? extends S> source, final Collection<T> result, final Function<S, T> functor) {
+        if (result == null) {
+            throw new IllegalArgumentException("The result collection is required.");
+        }
+        
+        if (functor == null) {
+            throw new IllegalArgumentException("The map function is required.");
+        }
+        
         for (final S sourceElement : source) {
             result.add(functor.apply(sourceElement));
         }
+        
         return result;
     }
     
@@ -61,7 +78,11 @@ public final class CollectionUtils {
      */
     @SuppressWarnings("unchecked")
     public static <S, T> T[] mapToArray(final Collection<S> source, final Function<S, T> functor) {
-        final List<T> resultList = new ArrayList<T>(source.size());
+        if (functor == null) {
+            throw new IllegalArgumentException("Map function is required.");
+        }
+        
+        final List<T> resultList = new ArrayList<>(source.size());
         
         for (final S sourceElement : source) {
             final T executeResult = functor.apply(sourceElement);
@@ -81,12 +102,20 @@ public final class CollectionUtils {
      * @param <T> source/target type
      * @param source source collection
      * @param result target collection
-     * @param functor filtering predicate
+     * @param predicate filtering predicate
      * @return target array
      */
-    public static <T> Collection<T> filter(final Collection<T> source, final Collection<T> result, final Predicate<T> functor) {
+    public static <T> Collection<T> filter(final Collection<T> source, final Collection<T> result, final Predicate<T> predicate) {
+        if (result == null) {
+            throw new IllegalArgumentException("The result collection is required.");
+        }
+        
+        if (predicate == null) {
+            throw new IllegalArgumentException("The filter predicate is required.");
+        }
+        
         for (final T sourceElement : source) {
-            if (functor.test(sourceElement)) {
+            if (predicate.test(sourceElement)) {
                 result.add(sourceElement);
             }
         }
@@ -116,6 +145,10 @@ public final class CollectionUtils {
      *         {@code true}; {@code null} when there is none.
      */
     public static <T> T selectFirst(final Collection<T> collection, final Predicate<T> predicate) {
+        if (predicate == null) {
+            throw new IllegalArgumentException("The predicate is required.");
+        }
+        
         for (final T sourceElement : collection) {
             if (predicate.test(sourceElement)) {
                 return sourceElement;
@@ -137,6 +170,10 @@ public final class CollectionUtils {
      * @return {@code true} when there is an element in the collection fulfilling the predicate.
      */
     public static <T> boolean exists(final Collection<T> collection, final Predicate<T> predicate) {
+        if (predicate == null) {
+            throw new IllegalArgumentException("The predicate is required.");
+        }
+        
         for (final T sourceElement : collection) {
             if (predicate.test(sourceElement)) {
                 return true;

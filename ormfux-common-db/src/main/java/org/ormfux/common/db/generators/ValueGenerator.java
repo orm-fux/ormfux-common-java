@@ -1,11 +1,12 @@
 package org.ormfux.common.db.generators;
 
 /**
- * INterface that are used for automatic generation of values of entities
+ * Interface that are used for automatic generation of values of entities
  * when their changes are persisted.
  *
  * @param <T> The type of generated value.
  */
+@FunctionalInterface
 public interface ValueGenerator<T> {
     
     /**

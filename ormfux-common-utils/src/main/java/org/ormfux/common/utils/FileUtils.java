@@ -2,12 +2,14 @@ package org.ormfux.common.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -22,6 +24,18 @@ import org.apache.commons.lang3.StringUtils;
 public final class FileUtils {
     
     private FileUtils() {
+    }
+    
+    /**
+     * Reads the contents of a file into an UTF-8 encoded String.
+     * 
+     * @param filePath The path to the file.
+     * @return The file content as String.
+     * 
+     * @throws IOException
+     */
+    public static String readFile(final String filePath) throws IOException {
+        return readStream(new FileInputStream(filePath));
     }
     
     /**
@@ -59,69 +73,114 @@ public final class FileUtils {
      * available as "loose file" or from a directory contained in a {@code *.jar} archive of the application. 
      * 
      * @param directory The fully qualified directory path.
-     * @param classPathIndicator The class, which provides the "jar" information. The directory is looked
+     * @param classPathIndicator The class, which provides the "jar" or "loose file" information. The directory is looked
      *                           up in the jar containing this class.
      * @return The (local!) names of the files and directories contained in the given directory 
      * @throws IOException
      */
     //TODO add module support
     public static List<String> readClassPathDirectoryContent(final String directory, final Class<?> classPathIndicator) throws IOException {
-        URL directoryUrl = classPathIndicator.getResource(directory);
-        
-        if (directoryUrl == null) {
-            directoryUrl = classPathIndicator.getResource(classPathIndicator.getName().replaceAll(".", "/") + ".class");
+        if (!directory.startsWith("/")) {
+            throw new IllegalArgumentException("The directory name must be a full path (i.e. start with '/').");
         }
         
-        final List<String> directoryContent = new ArrayList<>();
+        final URL indicatorUrl = classPathIndicator.getClassLoader().getResource(classPathIndicator.getName().replaceAll("\\.", "/") + ".class");
         
-        if (StringUtils.equals("file", directoryUrl.getProtocol())) {
-            //Directory is not located in the jar file with this initializer
-            directoryContent.addAll(Arrays.asList(new File(directoryUrl.getFile()).list()));
+        final List<String> directoryContent;
+        
+        if (StringUtils.equals("file", indicatorUrl.getProtocol())) {
+            directoryContent = readFilesFromLooseDirectory(directory, classPathIndicator);
             
-        } else if (StringUtils.equals("jar", directoryUrl.getProtocol())) {
-            //We are in a jar file. get the jar entries matching the directory.
-            final String jarPath = directoryUrl.getPath().substring(5, directoryUrl.getPath().indexOf('!'));
+        } else if (StringUtils.equals("jar", indicatorUrl.getProtocol())) {
+            directoryContent = readFilesFromJarDirectory(directory, indicatorUrl);
             
-            final JarFile jar = new JarFile(URLDecoder.decode(jarPath, "UTF-8"));
-            final Enumeration<JarEntry> jarEntries = jar.entries();
-            
-            while (jarEntries.hasMoreElements()) {
-                final JarEntry jarEntry = jarEntries.nextElement();
-                final String entryName;
-                
-                if (!StringUtils.startsWith(jarEntry.getName(), "/")) {
-                    entryName = '/' + jarEntry.getName();
-                } else {
-                    entryName = jarEntry.getName();
-                }
-                
-                if (StringUtils.startsWith(entryName, directory) && entryName.length() > (directory.length() + 1)) {
-                    final String subPath = entryName.substring(directory.length() + 1);
-                    
-                    final String localEntryName;
-                    
-                    if (subPath.indexOf('/') >= 0) {
-                        //sub-directory >> add only the sub-directory name
-                        localEntryName = subPath.substring(0, subPath.indexOf('/'));
-                    } else {
-                        localEntryName = subPath;
-                    }
-                    
-                    if (!directoryContent.contains(localEntryName)) {
-                        directoryContent.add(localEntryName);
-                    }
-                }
-                
-            }
-            
-            jar.close();
         } else {
-            throw new IOException("Cannot read directory: " + directoryUrl);
+            throw new IOException("Cannot read directory: " + indicatorUrl);
         }
         
         Collections.sort(directoryContent);
         
         return directoryContent;
         
+    }
+    
+    /**
+     * Reads the file and directory names of a directory, which is a loose directory on the class path.
+     * 
+     * @param directory The fully qualified directory name in the jar file.
+     * @param directoryUrl The URL to the loose directory.
+     * @return The names of the files and directories in the jar's nested directory.
+     * 
+     * @throws IOException
+     * @throws UnsupportedEncodingException
+     */
+    private static List<String> readFilesFromLooseDirectory(final String directory, final Class<?> classPathIndicator) throws IOException {
+        final URL directoryUrl = classPathIndicator.getClassLoader().getResource(directory.substring(1));
+        
+        if (directoryUrl != null) {
+            final File directoryFile = new File(directoryUrl.getFile());
+            
+            if (directoryFile.isDirectory()) {
+                return ListUtils.fromArray(directoryFile.list());
+            } else {
+                throw new FileNotFoundException("This is not a directory: " + directory);
+            }
+            
+        } else {
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Reads the file and directory names of a directory, which is stored in a jar-archive.
+     * 
+     * @param directory The fully qualified directory name in the jar file.
+     * @param directoryUrl The URL to the jar file. Path must be "{@code file:...}"
+     * @return The names of the files and directories in the jar's nested directory.
+     * 
+     * @throws IOException
+     * @throws UnsupportedEncodingException
+     */
+    private static List<String> readFilesFromJarDirectory(final String directory, 
+                                                          final URL directoryUrl) throws IOException, UnsupportedEncodingException {
+        final List<String> directoryContent = new ArrayList<>();
+        
+        final String jarPath = directoryUrl.getPath().substring("file:".length(), directoryUrl.getPath().indexOf('!'));
+        
+        final JarFile jar = new JarFile(URLDecoder.decode(jarPath, "UTF-8"));
+        final Enumeration<JarEntry> jarEntries = jar.entries();
+        
+        while (jarEntries.hasMoreElements()) {
+            final JarEntry jarEntry = jarEntries.nextElement();
+            final String entryName;
+            
+            if (!StringUtils.startsWith(jarEntry.getName(), "/")) {
+                entryName = '/' + jarEntry.getName();
+            } else {
+                entryName = jarEntry.getName();
+            }
+            
+            if (StringUtils.startsWith(entryName, directory) && entryName.length() > (directory.length() + 1)) {
+                final String subPath = entryName.substring(directory.length() + 1);
+                
+                final String localEntryName;
+                
+                if (subPath.indexOf('/') >= 0) {
+                    //sub-directory >> add only the sub-directory name
+                    localEntryName = subPath.substring(0, subPath.indexOf('/'));
+                } else {
+                    localEntryName = subPath;
+                }
+                
+                if (!directoryContent.contains(localEntryName)) {
+                    directoryContent.add(localEntryName);
+                }
+            }
+            
+        }
+        
+        jar.close();
+        
+        return directoryContent;
     }
 }
