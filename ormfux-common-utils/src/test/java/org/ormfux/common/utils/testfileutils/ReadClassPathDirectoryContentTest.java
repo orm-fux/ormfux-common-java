@@ -15,7 +15,9 @@ public class ReadClassPathDirectoryContentTest {
     
     @Test
     public void testReadFromJar() throws IOException {
-        final List<String> dirContent = FileUtils.readClassPathDirectoryContent('/' + Suite.class.getPackageName().replaceAll("\\.", "/"), Test.class);
+        //TODO Java11
+        //final List<String> dirContent = FileUtils.readClassPathDirectoryContent('/' + Suite.class.getPackageName().replaceAll("\\.", "/"), Test.class);
+        final List<String> dirContent = FileUtils.readClassPathDirectoryContent('/' + Suite.class.getPackage().getName().replaceAll("\\.", "/"), Test.class);
         assertNotNull(dirContent);
         assertEquals(18, dirContent.size());
         assertTrue(dirContent.contains("AllTests.class"));
@@ -40,7 +42,9 @@ public class ReadClassPathDirectoryContentTest {
     
     @Test
     public void readFromLooseDirectory() throws IOException {
-        final List<String> dirContent = FileUtils.readClassPathDirectoryContent('/' + getClass().getPackageName().replaceAll("\\.", "/"), FileUtils.class);
+        //TODO Java11
+        //final List<String> dirContent = FileUtils.readClassPathDirectoryContent('/' + getClass().getPackage().getName() .getPackageName().replaceAll("\\.", "/"), FileUtils.class);
+        final List<String> dirContent = FileUtils.readClassPathDirectoryContent('/' + getClass().getPackage().getName().replaceAll("\\.", "/"), FileUtils.class);
         assertNotNull(dirContent);
         assertEquals(4, dirContent.size());
         assertTrue(dirContent.contains("testfile.txt"));
@@ -51,12 +55,16 @@ public class ReadClassPathDirectoryContentTest {
     
     @Test(expected = IllegalArgumentException.class)
     public void testNonFullDirectoryPathLoose() throws IOException {
-        FileUtils.readClassPathDirectoryContent(FileUtils.class.getPackageName().replaceAll("\\.", "/"), FileUtils.class);
+        //TODO Java11
+        //FileUtils.readClassPathDirectoryContent(FileUtils.class.getPackageName().replaceAll("\\.", "/"), FileUtils.class);
+        FileUtils.readClassPathDirectoryContent(FileUtils.class.getPackage().getName().replaceAll("\\.", "/"), FileUtils.class);
     }
     
     @Test(expected = IllegalArgumentException.class)
     public void testNonFullDirectoryPathJar() throws IOException {
-        FileUtils.readClassPathDirectoryContent(Suite.class.getPackageName().replaceAll("\\.", "/"), Test.class);
+        //TODO Java11
+        //FileUtils.readClassPathDirectoryContent(Suite.class.getPackageName().replaceAll("\\.", "/"), Test.class);
+        FileUtils.readClassPathDirectoryContent(Suite.class.getPackage().getName().replaceAll("\\.", "/"), Test.class);
     }
     
     @Test

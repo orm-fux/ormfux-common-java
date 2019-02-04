@@ -257,7 +257,7 @@ public final class InjectionContext {
                     newInstancesCache.getNewBeans().putAll(fieldValueContainer.getNewBeans());
                     
                     if (fieldValue != null) {
-                        if (!beanField.canAccess(bean)) {
+                        if (!beanField.isAccessible()) { //TODO Java11 if (!beanField.canAccess(bean)) {
                             beanField.setAccessible(true);
                         }
                         

@@ -14,8 +14,8 @@ public class ReadFileTest {
     
     @Test
     public void readFile() throws IOException {
-        final File filePath = new File(this.getClass().getResource("testfile.txt").getPath().substring(1));
-        final String expectedContent = Files.readString(filePath.toPath());
+        final File filePath = new File(this.getClass().getResource("testfile.txt").getPath());
+        final String expectedContent = new String(Files.readAllBytes(filePath.toPath())); // TODO Java11 Files.readString(filePath.toPath());
         assertEquals(expectedContent, FileUtils.readFile(filePath.getPath()));
     }
     
