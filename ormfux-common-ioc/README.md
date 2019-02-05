@@ -1,7 +1,7 @@
 # About
 
 This is a small library providing some IOC capabilities (i.e. injection). Use this when you have a small 
-application, want IOC comfort, but don't use more extensive dependencies like Spring.
+application, want IOC comfort, but don't want the large pool of features like they are provided by Spring.
 
 # Usage
 
