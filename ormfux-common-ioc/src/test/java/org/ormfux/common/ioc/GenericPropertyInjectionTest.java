@@ -1,28 +1,32 @@
 package org.ormfux.common.ioc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
-import org.ormfux.common.ioc.annotations.Inject;
+import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.exception.BeanDefinitionException;
 
 public class GenericPropertyInjectionTest extends AbstractInjectionContextTest {
     
     @Test
     public void testGenericInject() {
         GenericDeclaringBean bean = InjectionContext.getBean(GenericDeclaringBean.class);
-        assertNotNull(bean);
-        assertNotNull(bean.getGenericProperty());
-        assertEquals(InjectedBeanType.class, bean.getGenericProperty().getClass());
+        assertThat(bean).isNotNull();
+        assertThat(bean.getGenericProperty()).isNotNull();
+        assertThat(bean.getGenericProperty().getClass()).isEqualTo(InjectedBeanType.class);
+        
+        assertThatThrownBy(() -> InjectionContext.getBean(GenericBean.class)).isExactlyInstanceOf(BeanDefinitionException.class);
     }
     
-    @Bean
     public static abstract class GenericPropertyHolder<T> {
         
-        @Inject
         private T genericProperty;
         
+        public GenericPropertyHolder(T genericProperty) {
+            this.genericProperty = genericProperty;
+        }
         
         public T getGenericProperty() {
             return genericProperty;
@@ -32,10 +36,29 @@ public class GenericPropertyInjectionTest extends AbstractInjectionContextTest {
     @Bean
     public static class GenericDeclaringBean extends GenericPropertyHolder<InjectedBeanType> {
         
+        @BeanConstructor
+        public GenericDeclaringBean(InjectedBeanType genericProperty) {
+            super(genericProperty);
+        }
+        
+    }
+    
+    @Bean
+    public static class GenericBean<T> extends GenericPropertyHolder<T> {
+        
+        @BeanConstructor
+        public GenericBean(T genericProperty) {
+            super(genericProperty);
+        }
+        
     }
     
     @Bean
     public static class InjectedBeanType {
+        
+        @BeanConstructor
+        public InjectedBeanType() {
+        }
         
     }
 }

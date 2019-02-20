@@ -1,45 +1,44 @@
 package org.ormfux.common.ioc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
-import org.ormfux.common.ioc.annotations.Inject;
-import org.ormfux.common.ioc.exception.BeanLookupException;
-import org.ormfux.common.utils.object.Objects;
+import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.exception.BeanInstantiationException;
 
 public class AntiContextPollutionTest extends AbstractInjectionContextTest {
     
     @Test
     public void testCleanContextOnError() {
-        try {
-            InjectionContext.getBean(Bean1.class);
-            fail("Expecting BeanLookupException.");
-        } catch (BeanLookupException e) {
-            assertEquals(0, getBeansCache().size());
-        }
+        Assertions.assertThatThrownBy(() -> InjectionContext.getBean(Bean1.class))
+                  .isInstanceOf(BeanInstantiationException.class);
+        
+        assertThat(getBeansCache().size()).isEqualTo(0);
     }
     
     @Test
     public void testUnalteredContextOnError() {
         Bean2 bean = InjectionContext.getBean(Bean2.class);
         
-        try {
-            InjectionContext.getBean(Bean1.class);
-            fail("Expecting BeanLookupException.");
-        } catch (BeanLookupException e) {
-            assertEquals(1, getBeansCache().size());
-            assertTrue(Objects.isSame(bean, getBeansCache().get(Bean2.class)));
-        }
+        Assertions.assertThatThrownBy(() -> InjectionContext.getBean(Bean1.class))
+                  .isInstanceOf(BeanInstantiationException.class);
+        
+        assertThat(getBeansCache().size()).isEqualTo(1);
+        assertThat(getBeansCache().get(Bean2.class)).isSameAs(bean);
     }
     
     @Bean
     public static class Bean1 {
         
-        @Inject
-        private ManualBean manualBean;
+        @SuppressWarnings("unused")
+        private Bean3 bean3;
+        
+        @BeanConstructor
+        public Bean1(Bean3 bean3) {
+            this.bean3 = bean3;
+        }
     }
     
     @Bean
@@ -47,20 +46,13 @@ public class AntiContextPollutionTest extends AbstractInjectionContextTest {
         
     }
     
-    public static class ManualBean {
+    @Bean
+    public static class Bean3 {
         
-        @Inject
-        private Bean1 circularReference;
+        public Bean3() {
+            throw new UnsupportedOperationException();
+        }
         
-        @Inject
-        private NonSingletonBean nonSingleton;
     }
     
-    @Bean(singleton = false)
-    public static class NonSingletonBean {
-        
-        @Inject
-        private Bean1 bean1;
-        
-    }    
 }

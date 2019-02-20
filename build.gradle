@@ -18,6 +18,7 @@ configure(subprojects) {
 	dependencies {
 		implementation 'org.apache.commons:commons-lang3:3.7'
 		testImplementation 'junit:junit:4.11'
+		testImplementation 'org.assertj:assertj-core:3.12.0'
 	}
 	
 	/* unit test resources folder */

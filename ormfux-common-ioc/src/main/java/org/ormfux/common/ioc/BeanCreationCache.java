@@ -10,28 +10,24 @@ import java.util.Map;
  */
 class BeanCreationCache<B> {
     
+    private BeanCreationCache<?> parentCache;
+    
     /**
      * The originally requested "root" bean.
      */
     private B bean;
     
-    /**
-     * All instances of singleton beans, which are created, because the
-     * "root" bean (in-)directly depends on them.
-     */
-    private final Map<Class<?>, Object> newBeans = new HashMap<>();
+    private final boolean singleton;
     
-    /**
-     * Default constructor
-     */
-    public BeanCreationCache() {
+    private final Map<Class<?>, Object> cache = new HashMap<>();
+    
+    public BeanCreationCache(final boolean singleton) {
+        this(singleton, null);
     }
     
-    /**
-     * @param parentCache Cache with which to merge.
-     */
-    public BeanCreationCache(final BeanCreationCache<?> parentCache) {
-        this.newBeans.putAll(parentCache.newBeans);
+    public BeanCreationCache(final boolean singleton, final BeanCreationCache<?> parentCache) {
+        this.singleton = singleton;
+        this.parentCache = parentCache;
     }
     
     /**
@@ -46,23 +42,21 @@ class BeanCreationCache<B> {
      */
     public void setBean(final B bean) {
         this.bean = bean;
+        
+        if (singleton) {
+            cache.put(bean.getClass(), bean);
+        }
+    }
+    
+    public void pullContentsIn(final BeanCreationCache<?> otherCache) {
+        cache.putAll(otherCache.getCachedBeans());
     }
     
     /**
      * All cache contents.
      */
-    public Map<Class<?>, Object> getNewBeans() {
-        return newBeans;
-    }
-    
-    /**
-     * Adds a new bean to the cache.
-     * 
-     * @param beanType The type of the bean.
-     * @param bean The bean.
-     */
-    public void putBeanInCache(final Class<?> beanType, final Object bean) {
-        this.newBeans.put(beanType, bean);
+    public Map<Class<?>, Object> getCachedBeans() {
+        return cache;
     }
     
     /**
@@ -72,7 +66,15 @@ class BeanCreationCache<B> {
      * @return The bean; {@code null} when it does not exist.
      */
     public Object getCachedBean(final Class<?> beanType) {
-        return newBeans.get(beanType);
+        final Object cachedBean = cache.get(beanType);
+        
+        if (cachedBean != null) {
+            return cachedBean;
+        } else if (parentCache != null) {
+            return parentCache.getCachedBean(beanType);
+        } else {
+            return null;
+        }
     }
     
 }

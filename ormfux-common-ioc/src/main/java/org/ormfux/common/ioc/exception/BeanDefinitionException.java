@@ -1,9 +1,9 @@
 package org.ormfux.common.ioc.exception;
 
 /**
- * An exception to be thrown when a bean cannot be looked up.
+ * An exception to be thrown when a bean is not properly defined.
  */
-public class BeanLookupException extends RuntimeException {
+public class BeanDefinitionException extends RuntimeException {
 
     /**
      * Serial version uid.
@@ -13,7 +13,7 @@ public class BeanLookupException extends RuntimeException {
     /**
      * @param message Message.
      */
-    public BeanLookupException(final String message) {
+    public BeanDefinitionException(final String message) {
         super(message);
     }
     
@@ -21,7 +21,7 @@ public class BeanLookupException extends RuntimeException {
      * @param message Message.
      * @param cause Cause.
      */
-    public BeanLookupException(final String message, final Throwable cause) {
+    public BeanDefinitionException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

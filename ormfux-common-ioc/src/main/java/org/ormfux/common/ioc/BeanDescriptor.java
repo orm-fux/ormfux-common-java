@@ -1,6 +1,6 @@
 package org.ormfux.common.ioc;
 
-import org.ormfux.common.utils.object.EqualsBuilder;
+import java.util.Objects;
 
 /**
  * Descriptor for beans, which are defined without annotations.
@@ -46,9 +46,14 @@ public class BeanDescriptor {
      */
     @Override
     public boolean equals(final Object other) {
-        final EqualsBuilder<BeanDescriptor> builder = new EqualsBuilder<>(this, other);
-        builder.append(BeanDescriptor::getBeanType);
+        if (this == other) {
+            return true;
+        }
         
-        return builder.isEquals();
+        if (other == null || !other.getClass().equals(BeanDescriptor.class)) {
+            return false;
+        }
+        
+        return Objects.equals(this.beanType, ((BeanDescriptor) other).beanType);
     }
 }

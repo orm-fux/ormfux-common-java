@@ -1,78 +1,76 @@
 package org.ormfux.common.ioc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
-import org.ormfux.common.ioc.annotations.Inject;
-import org.ormfux.common.ioc.exception.BeanLookupException;
-import org.ormfux.common.utils.object.Objects;
+import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.exception.BeanDefinitionException;
 
 public class ManualBeansTest extends AbstractInjectionContextTest {
     
     @Test
     public void testAddBeanDefinition() {
         List<BeanDescriptor> beanDescriptors = getBeanDescriptors();
-        assertEquals(0, beanDescriptors.size());
+        assertThat(beanDescriptors.size()).isEqualTo(0);
         
         InjectionContext.addBeanDefinition(ManualBean.class, true);
-        assertEquals(1, beanDescriptors.size());
-        assertEquals(ManualBean.class, beanDescriptors.get(0).getBeanType());
-        assertTrue(beanDescriptors.get(0).isSingleton());
+        assertThat(beanDescriptors.size()).isEqualTo(1);
+        assertThat(beanDescriptors.get(0).getBeanType()).isEqualTo(ManualBean.class);
+        assertThat(beanDescriptors.get(0).isSingleton()).isTrue();
         
         beanDescriptors.clear();
         
         InjectionContext.addBeanDefinition(ManualBean.class, false);
-        assertEquals(1, beanDescriptors.size());
-        assertEquals(ManualBean.class, beanDescriptors.get(0).getBeanType());
-        assertFalse(beanDescriptors.get(0).isSingleton());
+        assertThat(beanDescriptors.size()).isEqualTo(1);
+        assertThat(beanDescriptors.get(0).getBeanType()).isEqualTo(ManualBean.class);
+        assertThat(beanDescriptors.get(0).isSingleton()).isFalse();
         
         beanDescriptors.clear();
         
         BeanDescriptor beanDescriptor = new BeanDescriptor(ManualBean.class, true);
         InjectionContext.addBeanDefinition(beanDescriptor);
-        assertEquals(1, beanDescriptors.size());
-        assertTrue(Objects.isSame(beanDescriptor, beanDescriptors.get(0))); 
+        assertThat(beanDescriptors.size()).isEqualTo(1);
+        assertThat(beanDescriptors.get(0)).isSameAs(beanDescriptor);
     }
     
     @Test
     public void testNoDuplicateBeanDescriptors() {
         List<BeanDescriptor> beanDescriptors = getBeanDescriptors();
-        assertEquals(0, beanDescriptors.size());
+        assertThat(beanDescriptors.size()).isEqualTo(0);
         
         InjectionContext.addBeanDefinition(ManualBean.class, true);
-        assertEquals(1, beanDescriptors.size());
-        assertEquals(ManualBean.class, beanDescriptors.get(0).getBeanType());
-        assertTrue(beanDescriptors.get(0).isSingleton());
+        assertThat(beanDescriptors.size()).isEqualTo(1);
+        assertThat(beanDescriptors.get(0).getBeanType()).isEqualTo(ManualBean.class);
+        assertThat(beanDescriptors.get(0).isSingleton()).isTrue();
         
         InjectionContext.addBeanDefinition(ManualBean.class, false);
-        assertEquals(1, beanDescriptors.size());
-        assertEquals(ManualBean.class, beanDescriptors.get(0).getBeanType());
-        assertTrue(beanDescriptors.get(0).isSingleton());
+        assertThat(beanDescriptors.size()).isEqualTo(1);
+        assertThat(beanDescriptors.get(0).getBeanType()).isEqualTo(ManualBean.class);
+        assertThat(beanDescriptors.get(0).isSingleton()).isTrue();
         
         BeanDescriptor beanDescriptor = new BeanDescriptor(ManualBean.class, true);
         InjectionContext.addBeanDefinition(beanDescriptor);
-        assertEquals(1, beanDescriptors.size());
-        assertFalse(Objects.isSame(beanDescriptor, beanDescriptors.get(0))); 
-        assertEquals(ManualBean.class, beanDescriptors.get(0).getBeanType());
-        assertTrue(beanDescriptors.get(0).isSingleton());
+        assertThat(beanDescriptors.size()).isEqualTo(1);
+        assertThat(beanDescriptors.get(0)).isNotSameAs(beanDescriptor);
+        assertThat(beanDescriptors.get(0).getBeanType()).isEqualTo(ManualBean.class);
+        assertThat(beanDescriptors.get(0).isSingleton()).isTrue();
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNotAManualBean() {
-        InjectionContext.addBeanDefinition(Bean1.class, false);
+        assertThatThrownBy(() -> InjectionContext.addBeanDefinition(Bean1.class, false))
+                .isExactlyInstanceOf(BeanDefinitionException.class);
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNotAManualBeanDescriptor() {
-        InjectionContext.addBeanDefinition(new BeanDescriptor(Bean1.class, false));
+        assertThatThrownBy(() -> InjectionContext.addBeanDefinition(new BeanDescriptor(Bean1.class, false)))
+                .isExactlyInstanceOf(BeanDefinitionException.class);
     }
     
     @Test
@@ -80,67 +78,51 @@ public class ManualBeansTest extends AbstractInjectionContextTest {
         InjectionContext.addBeanDefinition(ManualBean.class, true);
         
         Bean1 bean = InjectionContext.getBean(Bean1.class);
-        assertNotNull(bean);
+        assertThat(bean).isNotNull();
         
-        assertNull(bean.nonInjected);
+        assertThat(bean.nonInjected).isNull();;
         
-        assertNotNull(bean.selfReference);
-        assertTrue(Objects.isSame(bean, bean.selfReference)); //same object
-        
-        assertNotNull(bean.bean2);
-        assertNotNull(bean.nonSingleton);
-        
-        assertTrue(Objects.isSame(bean, bean.bean2.circularReference)); //same object
-        assertNotNull(bean.bean2.nonSingleton);
-        
-        assertTrue(bean.nonSingleton != bean.bean2.nonSingleton); //not the same object
-        
-        assertNotNull(bean.nonSingleton.bean1);
-        assertTrue(Objects.isSame(bean, bean.nonSingleton.bean1));
-        
-        assertNotNull(bean.bean2.nonSingleton.bean1);
-        assertTrue(Objects.isSame(bean, bean.bean2.nonSingleton.bean1));
+        assertThat(bean.bean2).isNotNull();
+        assertThat(bean.nonSingleton).isNotNull();
         
         Map<Class<?>, Object> beansCache = getBeansCache();
-        assertEquals(2, beansCache.size());
-        assertTrue(Objects.isSame(beansCache.get(Bean1.class), bean));
-        assertTrue(Objects.isSame(beansCache.get(ManualBean.class), bean.bean2));
+        assertThat(beansCache.size()).isEqualTo(2);
+        assertThat(beansCache.get(Bean1.class)).isSameAs(bean);
+        assertThat(beansCache.get(ManualBean.class)).isSameAs(bean.bean2);
     }
     
-    @Test(expected = BeanLookupException.class)
+    @Test
     public void testManualBeanNotDefined() {
-        InjectionContext.getBean(Bean1.class);
+        assertThatThrownBy(() -> InjectionContext.getBean(Bean1.class))
+                .isExactlyInstanceOf(BeanDefinitionException.class);
     }
     
     @Bean
     public static class Bean1 {
         
-        @Inject
-        private Bean1 selfReference;
-        
-        @Inject
         private ManualBean bean2;
         
-        @Inject
         private NonSingletonBean nonSingleton;
         
         private ManualBean nonInjected;
+        
+        @BeanConstructor
+        public Bean1(ManualBean bean2, NonSingletonBean nonSingleton) {
+            this.bean2 = bean2;
+            this.nonSingleton = nonSingleton;
+        }
     }
     
     public static class ManualBean {
         
-        @Inject
-        private Bean1 circularReference;
-        
-        @Inject
-        private NonSingletonBean nonSingleton;
     }
     
     @Bean(singleton = false)
     public static class NonSingletonBean {
         
-        @Inject
-        private Bean1 bean1;
+        @BeanConstructor
+        public NonSingletonBean() {
+        }
         
     }
 }

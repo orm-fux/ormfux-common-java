@@ -1,38 +1,34 @@
 package org.ormfux.common.ioc;
 
-import static org.ormfux.common.utils.NullableUtils.nonNull;
-
-import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import org.ormfux.common.ioc.annotations.Bean;
-import org.ormfux.common.ioc.annotations.Init;
-import org.ormfux.common.ioc.annotations.Inject;
+import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.annotations.ConfigValue;
+import org.ormfux.common.ioc.exception.BeanDefinitionException;
 import org.ormfux.common.ioc.exception.BeanInstantiationException;
-import org.ormfux.common.ioc.exception.BeanLookupException;
-import org.ormfux.common.utils.ListUtils;
-import org.ormfux.common.utils.NullableUtils;
-import org.ormfux.common.utils.reflection.ClassUtils;
-import org.ormfux.common.utils.reflection.exception.InstantiationException;
+import org.ormfux.common.ioc.exception.ConfigValueLoadException;
 
 /**
- * Simple inversion of control implementation: We don't want to constantly create new Objects
+ * Simple dependency injection implementation: We don't want to constantly create new Objects
  * or pass Objects around. This can be used to create new Objects of classes annotated with 
- * {@link Bean}. The instances are cached in this context. So, this context provides 
- * <i>singleton</i> instances when asked for the same type multiple times. Property values
- * of the instances are automatically "injected" with instances of the respective property's 
- * type (as long as the type is also annotated with {@link Bean}). Only properties annotated 
- * with {@link Inject} are automatically set. The property values are also kept in this 
- * context's cache.
+ * {@link Bean}. 
+ * <p/>
+ * Bean instances are cached in this context. So, this context provides <i>singleton</i> 
+ * instances when asked for the same type multiple times. Constructor values of the instances 
+ * are automatically "injected" with instances of the respective constructor parameters's 
+ * type (As long as the type is also annotated with {@link Bean} or is a manually registered 
+ * bean type.) The constructor annotated with {@link BeanConstructor} is the one used for 
+ * instance creation for annotated beans; the no-argument constructor for "manual" beans. 
  * <p/>
  * It is also possible to create non-singleton beans. Non-singletons are not stored in the context. 
  * Each time such a bean has to be injected a new instance is created. So beware of circular 
@@ -41,7 +37,7 @@ import org.ormfux.common.utils.reflection.exception.InstantiationException;
  * <i>Why is this implemented?</i>
  * <ul>
  *  <li>See above.</li>
- *  <li>A library like Spring would be overkill.</li>
+ *  <li>A library like Spring would be overkill for smaller applications.</li>
  * </ul>
  *
  */
@@ -57,78 +53,39 @@ public final class InjectionContext {
      */
     private static final Map<Class<?>, Object> BEANS = new HashMap<>();
     
+    private InjectionContext() {
+        throw new UnsupportedOperationException("The InjectionContext is static and supposed to be instantiated.");
+    }
+    
     /**
-     * Creates a new instance of the given type or gets the matching instance from this context's cache. 
-     * The type has to be annotated with {@link Bean} or must be a manually registered one. Properties of 
-     * the type, annotated with {@link Inject}, get a value either from this context's cache or as a new 
-     * instance that is then also placed in this context's cache. 
+     * Creates a new instance of the given type or gets the matching instance from this context's 
+     * cache. The type has to be annotated with {@link Bean} or must be a manually registered one. 
      * 
      * @param beanType The bean type.
      * @return The instance.
+     * 
+     * @throws BeanDefinitionException
+     * @throws BeanInstantiationException
+     * @throws ConfigValueLoadException
      */
     @SuppressWarnings("unchecked")
-    public static <T> T getBean(final Class<T> beanType) {
+    public static <T> T getBean(final Class<T> beanType) throws BeanDefinitionException, 
+                                                                BeanInstantiationException,
+                                                                ConfigValueLoadException {
         final Object bean = BEANS.get(beanType);
         
-        if (nonNull(bean)) {
+        if (bean != null) {
             return (T) bean;
             
         } else {
-            validateBeanDefinition(beanType);
+            validateBeanDefinition(beanType, new ArrayList<>());
             
-            final BeanCreationCache<T> newBeanContainer = getBean(beanType, new BeanCreationCache<>());
-            BEANS.putAll(newBeanContainer.getNewBeans());
+            final BeanCreationCache<T> newBeanContainer = getBean(beanType, new BeanCreationCache<>(false));
+            BEANS.putAll(newBeanContainer.getCachedBeans());
             
             return newBeanContainer.getBean();
         }
         
-    }
-    
-    /**
-     * Returns a an existing bean from the caches or creates a new instance. A new instance is only created 
-     * when the requested bean is not found in one of the caches. 
-     * 
-     * @param beanType The type of the bean to create.
-     * @param newInstancesCache The cache with all newly created bean instances.
-     * @return The bean instance along with the other newly created beans (includes the ones from the cache 
-     *         provided to the method).
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> BeanCreationCache<T> getBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
-        if (BEANS.containsKey(beanType) || nonNull(newInstancesCache.getCachedBean(beanType))) {
-            final BeanCreationCache<T> existingInstanceContainer = new BeanCreationCache<>(newInstancesCache);
-            
-            if (BEANS.containsKey(beanType)) {
-                existingInstanceContainer.setBean((T) BEANS.get(beanType));
-            } else {
-                existingInstanceContainer.setBean((T) newInstancesCache.getCachedBean(beanType));
-            }
-            
-            return existingInstanceContainer;
-            
-        } else if (isAnnotatedBeanType(beanType)) {
-            return createAnnotatedBean(beanType, newInstancesCache);
-        } else if (isManualBeanType(beanType)) {
-            return createManualBean(beanType, newInstancesCache);
-            
-        } else {
-            //We should never get here!
-            throw new BeanLookupException("Not a bean type: " + beanType);
-        }
-        
-    }
-    
-    /**
-     * Validates that the class actually represents a bean. Includes validation of the values to
-     * inject into new instances.
-     * 
-     * @param beanType The bean type to validate.
-     * 
-     * @throws BeanLookupException When the class or one of its (indirect) properties to inject
-     *                             does not represent a valid bean definition. 
-     */
-    private static void validateBeanDefinition(final Class<?> beanType) throws BeanLookupException {
-        validateBeanDefinition(beanType, new ArrayList<>());
     }
     
     /**
@@ -139,199 +96,147 @@ public final class InjectionContext {
      * @param discoveredNewBeans The, during the validation process, already found types of beans,
      *                           for which a new instance needs to be created.
      * 
-     * @throws BeanLookupException When the class or one of its (indirect) properties to inject
+     * @throws BeanDefinitionException When the class or one of its (indirect) properties to inject
      *                             does not represent a valid bean definition. 
+     * @throws ConfigValueLoadException
      */
-    private static void validateBeanDefinition(final Class<?> beanType, final List<Class<?>> discoveredNewBeans) throws BeanLookupException {
-        if (!BEANS.containsKey(beanType) && !discoveredNewBeans.contains(beanType)) {
-            if (isAnnotatedBeanType(beanType) || isManualBeanType(beanType)) {
-                discoveredNewBeans.add(beanType);
-                
-                Class<?> currentType = beanType;
-                
-                while (nonNull(currentType)) {
-                    for (final Field beanField : currentType.getDeclaredFields()) {
-                        final Class<?> fieldBeanType = getTypeToInject(beanType, beanField);
-                        
-                        if (nonNull(fieldBeanType)) {
-                            validateBeanDefinition(fieldBeanType, discoveredNewBeans);
-                        }
-                    }
-                    
-                    currentType = currentType.getSuperclass();
+    private static void validateBeanDefinition(final Class<?> beanType, 
+                                               final List<Class<?>> discoveredNewBeans) throws BeanDefinitionException,
+                                                                                               ConfigValueLoadException {
+        if (!BEANS.containsKey(beanType)) {
+            if (discoveredNewBeans.contains(beanType)) {
+                throw new BeanDefinitionException("Circular bean definition discovered, involving: " + beanType);
+            }
+            
+            if (!isBeanType(beanType)) {
+                throw new BeanDefinitionException("Not a bean type: " + beanType);
+            } 
+            
+            if (isAnnotatedBeanType(beanType)) {
+                if (Arrays.stream(beanType.getConstructors())
+                          .filter(constructor -> constructor.isAnnotationPresent(BeanConstructor.class))
+                          .count() > 1) {
+                    throw new BeanDefinitionException("More than one bean instantation constructor.");
                 }
                 
-            } else {
-                throw new BeanLookupException("Not a bean type: " + beanType);
-            }
-            
-        }
-    }
-    
-    /**
-     * Adds a new instance of the given type to this context's cache. Field values are injected, 
-     * too. This may result in further creation and placement of instances in this cache.
-     * 
-     * @param beanType The type to instantiate.
-     * @param newInstancesCache The cache with all newly created bean instances.
-     * @return The created instance.
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> BeanCreationCache<T> createManualBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
-        final BeanDescriptor beanDescriptor = getBeanDescriptor(beanType);
-        return createBean((Class<T>) beanDescriptor.getBeanType(), beanDescriptor.isSingleton(), newInstancesCache);
-    }
-    
-    /**
-     * Adds a new instance of the given type to this context's cache. Field values are injected, 
-     * too. This may result in further creation and placement of instances in this cache.
-     * <p/>
-     * The type must be annotated with {@link Bean}.
-     * 
-     * @param beanType The type to instantiate.
-     * @param newInstancesCache The cache with all newly created bean instances.
-     * @return The created instance.
-     */
-    private static <T> BeanCreationCache<T> createAnnotatedBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
-        return createBean(beanType, beanType.getAnnotation(Bean.class).singleton(), newInstancesCache);
-    }
-    
-    /**
-     * Adds a new instance of the given type to this context's cache. Field values are injected, 
-     * too. This may result in further creation and placement of instances in this cache.
-     * <p/>
-     * The type must be annotated with {@link Bean}.
-     * 
-     * @param beanType The type to instantiate.
-     * @param singleton If the bean is a singleton.
-     * @param newInstancesCache The cache with all newly created bean instances.
-     * @return The created instance.
-     */
-    private static <T> BeanCreationCache<T> createBean(final Class<T> beanType, 
-                                                       final boolean singleton, 
-                                                       final BeanCreationCache<?> newInstancesCache) throws BeanInstantiationException, 
-                                                                                                            BeanLookupException {
-        try {
-            final BeanCreationCache<T> newBeanContainer = new BeanCreationCache<>(newInstancesCache);
-            
-            final T bean = ClassUtils.createObject(beanType);
-            newBeanContainer.setBean(bean);
-            
-            //For circular references put this in the context immediately.
-            if (singleton) {
-                newBeanContainer.putBeanInCache(beanType, bean);
-            }
-            
-            //Inject values into bean.
-            injectValues(beanType, bean, newBeanContainer);
-            
-            //call initialization methods (super-classes first)
-            initializeBean(beanType, bean);
-            
-            return newBeanContainer;
-            
-        } catch (InstantiationException e) {
-            throw new BeanInstantiationException("Cannot create new bean instance.", e);
-        }
-    }
-    
-    /**
-     * Injects the values into the bean properties.
-     * 
-     * @param beanType The type of the bean.
-     * @param bean The bean in which to inject.
-     * @param newInstancesCache The cache with all newly created bean instances. Instances created in this method 
-     *                          are added to this cache.
-     * 
-     * @throws IllegalAccessException
-     */
-    private static <T> void injectValues(final Class<T> beanType, 
-                                         final T bean, 
-                                         final BeanCreationCache<?> newInstancesCache) throws BeanInstantiationException {
-        Class<?> currentType = beanType;
-        
-        while (nonNull(currentType)) {
-            for (final Field beanField : currentType.getDeclaredFields()) {
-                final Class<?> fieldBeanType = getTypeToInject(beanType, beanField);
+                discoveredNewBeans.add(beanType);
                 
-                if (nonNull(fieldBeanType)) {
-                    final BeanCreationCache<?> fieldValueContainer = getBean(fieldBeanType, newInstancesCache);
-                    final Object fieldValue = fieldValueContainer.getBean();
-                    newInstancesCache.getNewBeans().putAll(fieldValueContainer.getNewBeans());
-                    
-                    if (nonNull(fieldValue)) {
-                        if (!beanField.isAccessible()) { //TODO Java11 if (!beanField.canAccess(bean)) {
-                            beanField.setAccessible(true);
-                        }
-                        
-                        try {
-                            beanField.set(bean, fieldValue);
-                        } catch (final IllegalAccessException e) {
-                            throw new BeanInstantiationException("Cannot set value to " + beanType.getName() + "." + beanField.getName());
+                for (final Parameter parameter : getBeanConstructor(beanType).getParameters()) {
+                    if (parameter.isAnnotationPresent(ConfigValue.class)) {
+                        if (parameter.getType().isPrimitive() && getConfigValue(parameter) == null) {
+                            throw new BeanDefinitionException("No config value for primitive paramater.");
                         }
                         
                     } else {
-                        throw new BeanLookupException("There is no bean to inject into " + beanType.getName() + "." + beanField.getName());
+                        validateBeanDefinition(parameter.getType(), new ArrayList<>(discoveredNewBeans));
                     }
+                }
+                
+            } else if (isManualBeanType(beanType)) {
+                if (Arrays.stream(beanType.getConstructors()).anyMatch(c -> c.isAnnotationPresent(BeanConstructor.class))) {
+                    throw new BeanDefinitionException("No constructor is allowed to be marked.");
                 }
             }
             
-            currentType = currentType.getSuperclass();
         }
     }
-
+    
     /**
-     * Gets the type of the bean to inject into the property represented by the field.
+     * Returns a an existing bean from the caches or creates a new instance. A new instance is only created 
+     * when the requested bean is not found in one of the caches. 
      * 
-     * @param beanType The bean type that owns the field.
-     * @param field The field.
-     * @return The type for which to create a new field value; {@code null} when not an injectable field.
+     * @param beanType The type of the bean to create.
+     * @param newInstancesCache The cache with all newly created bean instances.
+     * @return The bean instance along with the other newly created beans.
+     * 
+     * @throws BeanInstantiationException
+     * @throws ConfigValueLoadException
      */
-    private static Class<?> getTypeToInject(final Class<?> beanType, final Field field) {
-        if (field.isAnnotationPresent(Inject.class)) {
-            //we need to do some extra work for generic fields.
-            final Type genericType = field.getGenericType();
+    private static <T> BeanCreationCache<T> getBean(final Class<T> beanType, 
+                                                    final BeanCreationCache<?> newInstancesCache) throws BeanInstantiationException,
+                                                                                                         ConfigValueLoadException {
+        if (BEANS.containsKey(beanType) || newInstancesCache.getCachedBean(beanType) != null) {
+            return getExistingBean(beanType, newInstancesCache);
             
-            if (genericType instanceof TypeVariable) {
-                return ClassUtils.getTypeForGeneric(beanType, (TypeVariable<?>) genericType);
-            } else {
-                return field.getType();
-            }
+        } else if (isAnnotatedBeanType(beanType)) {
+            return createBean(beanType, beanType.getAnnotation(Bean.class).singleton(), newInstancesCache);
+            
+        } else if (isManualBeanType(beanType)) {
+            final BeanDescriptor beanDescriptor = getBeanDescriptor(beanType);
+            return createBean(beanType, beanDescriptor.isSingleton(), newInstancesCache);
             
         } else {
-            return null;
+            //We should never get here!
+            throw new BeanInstantiationException("Not a bean type: " + beanType);
         }
         
     }
     
     /**
-     * Calls the methods of the bean, which have the {@code @Init} annotation. Invokes top-down in the inheritance 
-     * hierarchy - i.e. super-classes first. The methods must be public, non-static, and have no parameters.
+     * Gets a bean for which the instance already exists in a cache.
+     * 
+     * @param beanType The bean type.
+     * @param newInstancesCache The cache of instances not yet in the main cache.
+     * @return The bean instance.
      */
-    private static <T> void initializeBean(final Class<T> beanType, final T bean) throws BeanInstantiationException {
-        List<Class<?>> superClasses = new ArrayList<>();
-        Class<?> superClass = beanType;
+    @SuppressWarnings("unchecked")
+    private static <T> BeanCreationCache<T> getExistingBean(final Class<T> beanType, final BeanCreationCache<?> newInstancesCache) {
+        final BeanCreationCache<T> existingInstanceContainer = new BeanCreationCache<>(false);
         
-        do {
-            superClasses.add(0, superClass);
-            superClass = superClass.getSuperclass();
-        } while (NullableUtils.nonNull(superClass) && superClass != Object.class);
-        
-        try {
-            for (final Class<?> curSuperClass : superClasses) {
-                for (final Method method : curSuperClass.getDeclaredMethods()) {
-                    if (Modifier.isPublic(method.getModifiers()) 
-                            && !Modifier.isStatic(method.getModifiers())
-                            && method.isAnnotationPresent(Init.class)) {
-                        method.invoke(bean);
-                    }
-                }
-            }
-        } catch (final IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
-            throw new BeanInstantiationException("Error calling initialization method.", e);
+        if (BEANS.containsKey(beanType)) {
+            existingInstanceContainer.setBean((T) BEANS.get(beanType));
+        } else {
+            existingInstanceContainer.setBean((T) newInstancesCache.getCachedBean(beanType));
         }
+        
+        return existingInstanceContainer;
     }
     
+    /**
+     * Creates a new instance for a bean.
+     * 
+     * @param beanType The type to instantiate.
+     * @param singleton If the bean is a singleton.
+     * @param parentInstancesCache The cache with all bean instances not yet in the main cache.
+     * @return The created instance along other newly created instances required for the bean.
+     * 
+     * @throws BeanInstantiationException
+     * @throws ConfigValueLoadException
+     */
+    private static <T> BeanCreationCache<T> createBean(final Class<T> beanType, 
+                                                       final boolean singleton, 
+                                                       final BeanCreationCache<?> parentInstancesCache) throws BeanInstantiationException,
+                                                                                                               ConfigValueLoadException {
+        final BeanCreationCache<T> newInstancesCache = new BeanCreationCache<>(singleton, parentInstancesCache);
+        
+        final Constructor<?> beanConstructor = getBeanConstructor(beanType);
+        final List<Object> paramValues = new ArrayList<>();
+        
+        for (final Parameter parameter : beanConstructor.getParameters()) {
+            if (parameter.isAnnotationPresent(ConfigValue.class)) {
+                paramValues.add(getConfigValue(parameter));
+                
+            } else {
+                final BeanCreationCache<?> paramInstanceCache = getBean(parameter.getType(), newInstancesCache);
+                newInstancesCache.pullContentsIn(paramInstanceCache);
+                paramValues.add(paramInstanceCache.getBean());
+            }
+        }
+        
+        try {
+            @SuppressWarnings("unchecked")
+            final T bean = (T) beanConstructor.newInstance(paramValues.toArray());
+            newInstancesCache.setBean(bean);
+            
+            return newInstancesCache;
+            
+        } catch (InstantiationException | IllegalAccessException 
+                    | IllegalArgumentException | InvocationTargetException e) {
+            throw new BeanInstantiationException("Cannot create new bean instance.", e);
+        }
+        
+    }
+
     /**
      * Adds a definition of a bean (without Bean-annotation) to the InjectionContext.
      * Use this, when you want to use something as a Bean, but cannot modify its source.
@@ -340,8 +245,10 @@ public final class InjectionContext {
      *  
      * @param beanType The type of the bean.
      * @param singleton If the bean shall be a singleton.
+     * 
+     * @throws BeanDefinitionException
      */
-    public static void addBeanDefinition(final Class<?> beanType, final boolean singleton) {
+    public static void addBeanDefinition(final Class<?> beanType, final boolean singleton) throws BeanDefinitionException {
         addBeanDefinition(new BeanDescriptor(beanType, singleton));
     }
     
@@ -352,15 +259,27 @@ public final class InjectionContext {
      * Each type can only be registered once!
      *  
      * @param beanDescriptor The bean definition.
+     * 
+     * @throws BeanDefinitionException
      */
-    public static void addBeanDefinition(final BeanDescriptor beanDescriptor) {
+    public static void addBeanDefinition(final BeanDescriptor beanDescriptor) throws BeanDefinitionException {
         if (!BEAN_DESCRIPTORS.contains(beanDescriptor)) {
             if (isAnnotatedBeanType(beanDescriptor.getBeanType())) {
-                throw new IllegalArgumentException("The type is already a bean. No need to add it manually: " + beanDescriptor.getBeanType());
+                throw new BeanDefinitionException("The type is already a bean. No need to add it manually: " + beanDescriptor.getBeanType());
             } else {
                 BEAN_DESCRIPTORS.add(beanDescriptor);
             }
         }
+    }
+    
+    /**
+     * Checks, if the class represents a bean that can be instantiated with this context.
+     * 
+     * @param beanType The potential bean type.
+     * @return {@code true} when a bean type.
+     */
+    private static boolean isBeanType(final Class<?> beanType) {
+        return isAnnotatedBeanType(beanType) || isManualBeanType(beanType);
     }
     
     /**
@@ -370,7 +289,7 @@ public final class InjectionContext {
      * @return {@code true} when a manual bean.
      */
     private static boolean isManualBeanType(final Class<?> beanType) {
-        return nonNull(getBeanDescriptor(beanType));
+        return getBeanDescriptor(beanType) != null && getBeanConstructor(beanType) != null;
     }
     
     /**
@@ -380,18 +299,93 @@ public final class InjectionContext {
      * @return the descriptor; {@code null} when there is none.
      */
     private static BeanDescriptor getBeanDescriptor(final Class<?> beanType) {
-        return ListUtils.selectFirst(BEAN_DESCRIPTORS, beanDescriptor -> Objects.equals(beanType, beanDescriptor.getBeanType()));
+        for (final BeanDescriptor beanDescriptor : BEAN_DESCRIPTORS) {
+            if (Objects.equals(beanType, beanDescriptor.getBeanType())) {
+                return beanDescriptor;
+            }
+        }
+        
+        return null;
     }
     
     /**
      * Checks if the given type is a type which this context can handle. This is the case when 
-     * it is annotated with {@link Bean} and not abstract.
+     * it is annotated with {@link Bean}, not abstract, and has a properly annotated constructor.
      * 
      * @param beanType The type.
      * @return {@code true} when this context can handle the type.
      */
     private static boolean isAnnotatedBeanType(Class<?> beanType) {
-        return beanType.isAnnotationPresent(Bean.class) && !Modifier.isAbstract(beanType.getModifiers());
+        return beanType.isAnnotationPresent(Bean.class) 
+                    && !Modifier.isAbstract(beanType.getModifiers())
+                    && getBeanConstructor(beanType) != null;
+    }
+    
+    /**
+     * Gets the constructor with which to instantiate a bean of the given type.
+     * 
+     * @param beanType The bean type.
+     * @return The constructor. For annotated beans this is the constructor with the 
+     *         {@link BeanConstructor} annotation or the no-argument constructor (when
+     *         no other constructor is defined). For manual beans this is the no-argument
+     *         constructor.
+     */
+    private static Constructor<?> getBeanConstructor(final Class<?> beanType) {
+        if (beanType.isAnnotationPresent(Bean.class)) {
+            final Constructor<?>[] constructors = beanType.getConstructors();
+            
+            if (constructors.length == 1 && constructors[0].getParameterCount() == 0) {
+                return constructors[0];
+            } else {
+                return Arrays.stream(constructors)
+                             .filter(c -> c.isAnnotationPresent(BeanConstructor.class))
+                             .findFirst()
+                             .orElse(null);
+            }
+            
+        } else {
+            try {
+                return beanType.getConstructor();
+            } catch (final NoSuchMethodException e) {
+                return null;
+            }
+        }
+    }
+    
+    /**
+     * Adds a new set of configuration values to the context. The configuration values
+     * are loaded from a file that is not on the application's class path.
+     * 
+     * @param name The identifying name of the value set.
+     * @param path The full path to the config value file.
+     * 
+     * @throws ConfigValueLoadException
+     */
+    public static void addExternalConfigValueSet(final String name, final String path) throws ConfigValueLoadException {
+        ConfigValueContext.addExternalConfigValueSet(name, path);
+    }
+    
+    /**
+     * Adds a new set of configuration values to the context. The configuration values
+     * are loaded from a file that is on the application's class path.
+     * 
+     * @param name The identifying name of the value set.
+     * @param path The path to the config value file.
+     * 
+     * @throws ConfigValueLoadException
+     */
+    public static void addConfigValueSet(final String name, final String path) throws ConfigValueLoadException {
+        ConfigValueContext.addConfigValueSet(name, path);
+    }
+    
+    /**
+     * Gets the value of the parameter from the {@link ConfigValueContext}.
+     * 
+     * @param parameter The parameter.
+     * @return The config value.
+     */
+    private static Object getConfigValue(final Parameter parameter) throws ConfigValueLoadException {
+        return ConfigValueContext.getConfigValue(parameter.getAnnotation(ConfigValue.class), parameter.getType());
     }
     
 }

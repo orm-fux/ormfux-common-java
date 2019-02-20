@@ -3,7 +3,7 @@ package org.ormfux.common.ioc.exception;
 /**
  * An exception to be thrown when a bean cannot be instantiated and/or initialized.
  */
-public class BeanInstantiationException extends RuntimeException {
+public class ConfigValueLoadException extends RuntimeException {
 
     /**
      * Serial version uid.
@@ -13,7 +13,7 @@ public class BeanInstantiationException extends RuntimeException {
     /**
      * @param message Message.
      */
-    public BeanInstantiationException(final String message) {
+    public ConfigValueLoadException(final String message) {
         super(message);
     }
     
@@ -21,7 +21,7 @@ public class BeanInstantiationException extends RuntimeException {
      * @param message Message.
      * @param cause Cause.
      */
-    public BeanInstantiationException(final String message, final Throwable cause) {
+    public ConfigValueLoadException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }
