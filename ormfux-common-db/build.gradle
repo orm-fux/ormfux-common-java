@@ -5,7 +5,7 @@ dependencies {
 	implementation project(':ormfux-common-utils')
 	
 	/* dependencies that are only required based on project usage */
-	compileOnly project(':ormfux-common-ioc')
+	compileOnly project(':ormfux-common-di')
 	compileOnly h2
 	
 	/* test dependencies */

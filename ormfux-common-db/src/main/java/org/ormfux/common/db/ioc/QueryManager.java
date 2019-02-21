@@ -4,9 +4,9 @@ import org.ormfux.common.db.query.Query;
 import org.ormfux.common.db.query.TypedQuery;
 import org.ormfux.common.db.query.connection.AbstractDbConnectionProvider;
 import org.ormfux.common.db.query.connection.DbConnectionProvider;
-import org.ormfux.common.ioc.annotations.Bean;
-import org.ormfux.common.ioc.annotations.BeanConstructor;
-import org.ormfux.common.ioc.annotations.ConfigValue;
+import org.ormfux.common.di.annotations.Bean;
+import org.ormfux.common.di.annotations.BeanConstructor;
+import org.ormfux.common.di.annotations.ConfigValue;
 
 /**
  * A QueryManager that can be used as an injectable "service". By defining this separately 

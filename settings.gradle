@@ -1,3 +1,3 @@
 rootProject.name = 'ormfux-common'
 
-include 'ormfux-common-utils', 'ormfux-common-ioc', 'ormfux-common-db'
+include 'ormfux-common-utils', 'ormfux-common-di', 'ormfux-common-db'
