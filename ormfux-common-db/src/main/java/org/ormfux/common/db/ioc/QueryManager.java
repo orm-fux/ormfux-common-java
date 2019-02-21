@@ -5,18 +5,32 @@ import org.ormfux.common.db.query.TypedQuery;
 import org.ormfux.common.db.query.connection.AbstractDbConnectionProvider;
 import org.ormfux.common.db.query.connection.DbConnectionProvider;
 import org.ormfux.common.ioc.annotations.Bean;
+import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.annotations.ConfigValue;
 
 /**
  * A QueryManager that can be used as an injectable "service". By defining this separately 
  * we keep the IOC dependency optional.
  */
-@Bean //This is the thing!
+@Bean 
 public class QueryManager {
     
     /**
      * The actual manager for query handling.
      */
     private final org.ormfux.common.db.query.QueryManager wrappedManager = new org.ormfux.common.db.query.QueryManager();
+    
+    /**
+     * @param connectionProviderType The type of provider for the database connection.
+     * @param databaseUrl The URL to the database.
+     * @param connectionParams Parameters for the connection.
+     */
+    @BeanConstructor
+    public QueryManager(@ConfigValue("org.ormfux.querymanager.connection_provider_type") final Class<? extends AbstractDbConnectionProvider> connectionProviderType, 
+                        @ConfigValue("org.ormfux.querymanager.database_url") final String databaseUrl, 
+                        @ConfigValue("org.ormfux.querymanager.connection_params") final String... connectionParams) {
+        wrappedManager.setDatabase(connectionProviderType, databaseUrl, connectionParams);
+    }
     
     /**
      * Creates a new query for this manager's database.
@@ -57,19 +71,6 @@ public class QueryManager {
      */
     public <T> TypedQuery<T> createQuery(final Class<T> entityType, final String querySuffix, final String entityAlias) {
         return wrappedManager.createQuery(entityType, querySuffix, entityAlias);
-    }
-    
-    /**
-     * Sets the database to which to connect with this manager.
-     * 
-     * @param connectionProviderType The type of provider for the database connection.
-     * @param databaseUrl The URL to the database.
-     * @param connectionParams Parameters for the connection.
-     */
-    public void setDatabase(final Class<? extends AbstractDbConnectionProvider> connectionProviderType, 
-                            final String databaseUrl, 
-                            final String... connectionParams) {
-        wrappedManager.setDatabase(connectionProviderType, databaseUrl, connectionParams);
     }
     
     /**

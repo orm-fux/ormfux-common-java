@@ -54,7 +54,7 @@ public final class InjectionContext {
     private static final Map<Class<?>, Object> BEANS = new HashMap<>();
     
     private InjectionContext() {
-        throw new UnsupportedOperationException("The InjectionContext is static and supposed to be instantiated.");
+        throw new UnsupportedOperationException("The InjectionContext is static and not supposed to be instantiated.");
     }
     
     /**

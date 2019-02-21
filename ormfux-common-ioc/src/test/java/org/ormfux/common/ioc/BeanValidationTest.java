@@ -5,9 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.annotations.ConfigValue;
 import org.ormfux.common.ioc.exception.BeanDefinitionException;
 
-public class BeanValidationTest extends AbstractInjectionContextTest {
+public class BeanValidationTest extends AbstractDependencyInjectionTest {
     
     @Test
     public void testCircularBeanDefinition() {
@@ -39,6 +40,11 @@ public class BeanValidationTest extends AbstractInjectionContextTest {
     @Test
     public void testNonBeanConstructorParam() {
         assertThatThrownBy(() -> InjectionContext.getBean(NonBeanConstructorParam.class)).isExactlyInstanceOf(BeanDefinitionException.class);
+    }
+    
+    @Test
+    public void testMissingPrimitiveConfigValue() {
+        assertThatThrownBy(() -> InjectionContext.getBean(PrimitiveConfigValue.class)).isExactlyInstanceOf(BeanDefinitionException.class);
     }
     
     @Bean
@@ -93,6 +99,15 @@ public class BeanValidationTest extends AbstractInjectionContextTest {
         
         @BeanConstructor
         public NonBeanConstructorParam(Object o) {
+        }
+        
+    }
+    
+    @Bean
+    public static class PrimitiveConfigValue {
+        
+        @BeanConstructor
+        public PrimitiveConfigValue(@ConfigValue("configkey") int val) {
         }
         
     }

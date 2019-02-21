@@ -3,6 +3,7 @@ package org.ormfux.common.ioc;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -25,7 +26,7 @@ final class ConfigValueContext {
     private static final Map<String, Properties> CONFIG_VALUE_SETS = new HashMap<>();
     
     private ConfigValueContext() {
-        throw new UnsupportedOperationException("The ConfigValueContext is static and supposed to be instantiated.");
+        throw new UnsupportedOperationException("The ConfigValueContext is static and not supposed to be instantiated.");
     }
     
     /**
@@ -55,8 +56,12 @@ final class ConfigValueContext {
      * @throws ConfigValueLoadException
      */
     public static void addConfigValueSet(final String name, final String path) throws ConfigValueLoadException {
-        try (final InputStream valueStream = ConfigValueContext.class.getClass().getResourceAsStream(path)) {
-            addConfigValueSet(name, path, valueStream);
+        try (final InputStream valueStream = ConfigValueContext.class.getResourceAsStream(path)) {
+            if (valueStream != null) {
+                addConfigValueSet(name, path, valueStream);
+            } else {
+                throw new ConfigValueLoadException("Config value file " + path + " not found.");
+            }
         } catch (final IOException e) {
             throw new ConfigValueLoadException("Error reading configuration values '" + name + "' from: " + path, e);
         }
@@ -180,19 +185,23 @@ final class ConfigValueContext {
      * @throws NumberFormatException
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static Object convertValue(final String value, final Class<?> valueType) throws ConfigValueLoadException, NumberFormatException {
+    /* private -> test */ static Object convertValue(final String value, final Class<?> valueType) throws ConfigValueLoadException, NumberFormatException {
         if (String.class.equals(valueType)) {
             return value;
         }
         
         if (valueType.isEnum()) {
-            return Enum.valueOf((Class<Enum>) valueType, value);
+            try {
+                return Enum.valueOf((Class<Enum>) valueType, value);
+            } catch (final IllegalArgumentException e) {
+                throw new ConfigValueLoadException("Cannot load config value.", e);
+            }
         } 
         
         if (valueType.equals(Class.class)) {
             try {
                 return Class.forName(value);
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 throw new ConfigValueLoadException("Cannot load config value.", e);
             }
         }
@@ -237,7 +246,53 @@ final class ConfigValueContext {
             return new BigInteger(value);
         }
         
+        if (valueType.isArray()) {
+            return convertToArray(value, valueType);
+        }
+        
         throw new ConfigValueLoadException("Unsupported value type: " + valueType);
+    }
+    
+    /**
+     * Converts the String value to an array containing values of the provided type.
+     * The default array value separator is the comma symbol (","). A custom one can 
+     * be specified as prefix of the String: For a custom separator use the format
+     * {@code $separator/$values} - i.e. end the separator with a "slash". This also 
+     * means that you cannot use "/" as custom separator!
+     * 
+     * @param value The array as String.
+     * @param valueType The types of values in the array.
+     * @return The Array parsed from the String.
+     */
+    private static Object convertToArray(final String value, final Class<?> valueType) {
+        final Class<?> arrayValueType = valueType.getComponentType();
+        
+        if (value.isEmpty()) {
+            return Array.newInstance(arrayValueType, 0);
+            
+        } else {
+            final int separatorEndIndex = value.indexOf('/');
+            final String separator;
+            
+            if (separatorEndIndex < 1) {
+                separator = ",";
+            } else {
+                separator = value.substring(0, separatorEndIndex);
+            }
+            
+            if (separatorEndIndex == value.length() - 1) {
+                return Array.newInstance(arrayValueType, 0);
+            } else {
+                final String[] rawValues = value.substring(separatorEndIndex + 1).split(separator);
+                final Object array = Array.newInstance(arrayValueType, rawValues.length);
+                
+                for (int valueIndex = 0; valueIndex < rawValues.length; valueIndex++) {
+                    Array.set(array, valueIndex, convertValue(rawValues[valueIndex], arrayValueType));
+                }
+                
+                return array;
+            }
+        }
     }
     
 }

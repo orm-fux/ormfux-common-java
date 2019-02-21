@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.BeanConstructor;
+import org.ormfux.common.ioc.annotations.ConfigValue;
 
-public class AnnotatedBeansTest extends AbstractInjectionContextTest {
+public class AnnotatedBeansTest extends AbstractDependencyInjectionTest {
     
     @Test
     public void testGetBean() {
@@ -28,10 +30,27 @@ public class AnnotatedBeansTest extends AbstractInjectionContextTest {
         assertThat(bean.nonSingleton).isNotSameAs(bean.bean2.nonSingleton); //not the same object
         
         Map<Class<?>, Object> beansCache = getBeansCache();
-        assertThat(beansCache.size()).isEqualTo(3);
-        assertThat(beansCache.get(Bean1.class)).isSameAs(bean);
-        assertThat(beansCache.get(Bean2.class)).isSameAs(bean.bean2);
-        assertThat(beansCache.get(Bean3.class)).isSameAs(bean.bean3);
+        assertThat(beansCache).hasSize(3)
+                              .containsEntry(Bean1.class, bean)
+                              .containsEntry(Bean2.class, bean.bean2)
+                              .containsEntry(Bean3.class, bean.bean3);
+    }
+    
+    @Test
+    public void testWithConfigValues() {
+        ConfigValueContext.addConfigValueSet("propertiesSet", "/config/configvalues2.properties");
+        
+        Bean4 bean = InjectionContext.getBean(Bean4.class);
+        assertThat(bean).isNotNull();
+        
+        assertThat(bean.bean2).isNotNull();
+        assertThat(bean.configValue).isEqualTo(Assert.class);
+        assertThat(bean.undefinedConfigValue).isNull();
+        
+        Map<Class<?>, Object> beansCache = getBeansCache();
+        assertThat(beansCache).hasSize(2)
+                              .containsEntry(Bean4.class, bean)
+                              .containsEntry(Bean2.class, bean.bean2);
     }
     
     @Bean
@@ -86,6 +105,26 @@ public class AnnotatedBeansTest extends AbstractInjectionContextTest {
         
         public Bean3() {
             throw new UnsupportedOperationException();
+        }
+        
+    }
+    
+    @Bean
+    public static class Bean4 {
+        
+        private Bean2 bean2;
+        
+        private Class<?> configValue;
+        
+        private Class<?> undefinedConfigValue;
+        
+        @BeanConstructor
+        public Bean4(Bean2 bean2, 
+                     @ConfigValue(key = "classValue", set = "propertiesSet") Class<?> configValue,
+                     @ConfigValue(key = "undefined", set = "propertiesSet") Class<?> undefinedConfigValue) {
+            this.bean2 = bean2;
+            this.configValue = configValue;
+            this.undefinedConfigValue = undefinedConfigValue;
         }
         
     }

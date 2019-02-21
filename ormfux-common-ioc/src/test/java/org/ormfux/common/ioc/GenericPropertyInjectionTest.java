@@ -8,7 +8,7 @@ import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.BeanConstructor;
 import org.ormfux.common.ioc.exception.BeanDefinitionException;
 
-public class GenericPropertyInjectionTest extends AbstractInjectionContextTest {
+public class GenericPropertyInjectionTest extends AbstractDependencyInjectionTest {
     
     @Test
     public void testGenericInject() {

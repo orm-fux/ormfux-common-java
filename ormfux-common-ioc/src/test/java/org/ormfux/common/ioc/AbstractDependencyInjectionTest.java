@@ -5,10 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.junit.Before;
 
-public abstract class AbstractInjectionContextTest {
+public abstract class AbstractDependencyInjectionTest {
     
     @Before
     public void beforeTest() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
@@ -24,6 +25,12 @@ public abstract class AbstractInjectionContextTest {
         assertNotNull(beanDescriptors);
         beanDescriptors.clear();
         
+        Field configValuesField = ConfigValueContext.class.getDeclaredField("CONFIG_VALUE_SETS");
+        configValuesField.setAccessible(true);
+        Map<?, ?> configValues = (Map<?, ?>) configValuesField.get(null);
+        assertNotNull(configValues);
+        configValues.clear();
+        
     }
     
     @SuppressWarnings("unchecked")
@@ -33,6 +40,18 @@ public abstract class AbstractInjectionContextTest {
             beansCacheField.setAccessible(true);
             
             return (Map<Class<?>, Object>) beansCacheField.get(null);
+        } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
+            throw new RuntimeException("Cannot read beans cache.", e);
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    protected Map<String, Properties> getConfigValueSets() {
+        try {
+            Field beansCacheField = ConfigValueContext.class.getDeclaredField("CONFIG_VALUE_SETS");
+            beansCacheField.setAccessible(true);
+            
+            return (Map<String, Properties>) beansCacheField.get(null);
         } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
             throw new RuntimeException("Cannot read beans cache.", e);
         }

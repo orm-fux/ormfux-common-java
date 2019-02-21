@@ -11,7 +11,7 @@ import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.BeanConstructor;
 import org.ormfux.common.ioc.exception.BeanDefinitionException;
 
-public class ManualBeansTest extends AbstractInjectionContextTest {
+public class ManualBeansTest extends AbstractDependencyInjectionTest {
     
     @Test
     public void testAddBeanDefinition() {

@@ -8,7 +8,7 @@ import org.ormfux.common.ioc.annotations.Bean;
 import org.ormfux.common.ioc.annotations.BeanConstructor;
 import org.ormfux.common.ioc.exception.BeanInstantiationException;
 
-public class AntiContextPollutionTest extends AbstractInjectionContextTest {
+public class AntiInjectContextPollutionTest extends AbstractDependencyInjectionTest {
     
     @Test
     public void testCleanContextOnError() {

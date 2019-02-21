@@ -12,7 +12,7 @@ configure(subprojects) {
 	/* Identifier */
 	group = 'org.ormfux'
 	archivesBaseName = project.name
-	version = '1.4'
+	version = '1.5'
 	
 	/* dependencies */
 	dependencies {
