@@ -8,12 +8,10 @@ A collection of utilities. There are, for example, "every day" utilities for ope
 collections, working with nullable values, or date values. Some of the more rarely used 
 ones are the reflection utilities for class and property analysis and invocations.
 
-## ormfux-common-ioc
+## ormfux-common-di
 
-A very simple injection framework. Use this, if you have a simple applicaiton and other
+A very simple injection framework. Use this, if you have a simple application and other
 frameworks, like Spring, would be overkill.
-
-This one uses on ```ormfux-common-utils```.
 
 ## ormfux-common-db
 
@@ -23,4 +21,4 @@ simple, for which the popular contenders, like Hibernate or EclipseLink, would b
 Supports ```H2``` as database out of the box. More support can be added by simply implementing 
 custom ```DbConnectionProviders```.
 
-This one uses ```ormfux-common-utils``` and has an _optional_ dependency on ```ormfux-common-ioc```.
+This one uses ```ormfux-common-utils``` and has an _optional_ dependency on ```ormfux-common-di```.
